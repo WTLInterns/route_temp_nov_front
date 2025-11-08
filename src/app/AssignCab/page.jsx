@@ -77,6 +77,9 @@ export default function AssignCab() {
   const [showAddCabForm, setShowAddCabForm] = useState(false)
   const [driverCash, setDriverCash] = useState({ cashOnHand: 0, loading: false, lastUpdated: null, error: null })
   const [lastCashUpdateLabel, setLastCashUpdateLabel] = useState(null)
+  // Prevent duplicate booking submissions
+  const [assigning, setAssigning] = useState(false)
+  const assigningRef = useRef(false)
 
   // Trip assignment fields with added city and state
   const [tripData, setTripData] = useState({
@@ -311,6 +314,11 @@ export default function AssignCab() {
 
   const handleAssign = async () => {
     console.log("🚀 Starting cab assignment process...")
+    if (assigningRef.current) {
+      console.log("⏳ Assignment in progress - ignoring duplicate click")
+      return
+    }
+
     console.log("Selected Driver ID:", selectedDriver)
     console.log("Selected Cab ID:", selectedCab)
     console.log("Trip Data:", tripData)
@@ -437,6 +445,9 @@ export default function AssignCab() {
       }
 
       console.log("📡 Sending request to:", `${baseURL}api/assigncab`)
+      // set mutex just before sending request
+      assigningRef.current = true
+      setAssigning(true)
 
       const response = await axios.post(`${baseURL}api/assigncab`, payload, {
         headers: {
@@ -485,6 +496,9 @@ export default function AssignCab() {
       console.error("❌ Assignment failed:", error.response?.data || error.message)
       const errorMessage = error.response?.data?.message || error.response?.data?.error || "Error assigning cab."
       setMessage(`❌ ${errorMessage}`)
+    } finally {
+      assigningRef.current = false
+      setAssigning(false)
     }
   }
 
@@ -997,9 +1011,11 @@ export default function AssignCab() {
 
                 <button
                   onClick={handleAssign}
-                  className="w-full px-4 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors duration-300 font-medium"
+                  disabled={assigning}
+                  aria-busy={assigning}
+                  className={`w-full px-4 py-3 rounded-lg transition-colors duration-300 font-medium ${assigning ? 'bg-yellow-300 cursor-not-allowed' : 'bg-yellow-500 hover:bg-yellow-600 text-white'}`}
                 >
-                  Assign Cab & Create Trip
+                  {assigning ? 'Assigning…' : 'Assign Cab & Create Trip'}
                 </button>
 
                 {message && (

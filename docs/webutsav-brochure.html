@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebUtsav Pvt. Ltd. — Company Portfolio 2025</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.3.0/fonts/remixicon.css" />
+  <style>
+    :root{
+      --blue1:#0b66c3; --blue2:#2b9edb; --text:#0f172a; --muted:#5b6472; --light:#f7fbff; --border:#e5eef7;
+    }
+    *{ box-sizing:border-box; }
+    body{ margin:0; background:#fff; color:var(--text); font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    a{ color:var(--blue1); text-decoration:none; }
+    /* A4 sizing */
+    @page { size: A4; margin: 16mm; }
+    .sheet{ width:210mm; margin:0 auto; background:#fff; position:relative; overflow:hidden; }
+    .cover{ height:297mm; }
+    .page{ padding:16mm; }
+    .page-break{ page-break-after:always; }
+
+    /* Cover */
+    .cover{ padding:0; }
+    .cover-bg{ position:absolute; inset:0; background:url('./image.png?v=1') center/cover no-repeat; filter:brightness(0.65); }
+    .cover-bg-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; filter:brightness(0.65); }
+    .cover-overlay{ position:absolute; inset:0; background: radial-gradient(ellipse at 70% 80%, rgba(11,102,195,0.25), transparent 60%), linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.35)); }
+    .cover-content{ position:relative; z-index:2; display:flex; flex-direction:column; height:297mm; padding:20mm; color:#fff; }
+    .brand{ display:flex; align-items:center; gap:10px; }
+    .brand img{ height:38px; width:auto; border-radius:6px; background:#fff; padding:4px; }
+    .brand .name{ font-family:Poppins, Inter; font-weight:700; font-size:18px; letter-spacing:0.5px; }
+    .tagline{ margin-top:6px; font-weight:600; color:#ffe083; }
+    .cover-spacer{ flex:1; }
+    .title-block{ background:linear-gradient(135deg, rgba(11,102,195,0.9), rgba(43,158,219,0.9)); padding:14px 18px; border-radius:12px; display:inline-block; box-shadow:0 8px 30px rgba(0,0,0,0.25); }
+    .title{ font-family:Poppins; font-size:28px; font-weight:700; margin:0; }
+    .subtitle{ margin:4px 0 0; font-size:14px; opacity:0.95; }
+    .cover-footer{ display:flex; justify-content:space-between; align-items:flex-end; gap:12px; }
+    .contact{ font-size:12px; line-height:1.6; }
+
+    /* Section headers */
+    .section-title{ font-family:Poppins; font-weight:700; font-size:18px; margin:0 0 12px; display:flex; align-items:center; gap:10px; }
+    .section-title .icon{ color:var(--blue1); font-size:18px; }
+    .hr{ height:2px; background:linear-gradient(90deg, var(--blue1), var(--blue2)); border-radius:2px; margin:8px 0 14px; opacity:0.8; }
+
+    /* Layout */
+    .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .grid-3{ display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; }
+    .grid-4{ display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; }
+
+    /* Cards */
+    .card{ border:1px solid var(--border); border-radius:12px; padding:14px; background:linear-gradient(180deg,#fff,#fafdff); box-shadow:0 1px 2px rgba(2,32,71,0.04); }
+    .muted{ color:var(--muted); font-size:13px; }
+    .pill{ display:inline-flex; gap:6px; align-items:center; background:linear-gradient(90deg,#e7f3ff,#f2faff); border:1px solid #d6e9fb; color:#0b66c3; padding:6px 10px; border-radius:999px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+
+    /* Icon boxes */
+    .icon-box{ border:1px solid var(--border); border-radius:12px; padding:14px; background:linear-gradient(135deg, #eef7ff, #ffffff); display:flex; gap:12px; }
+    .icon-box i{ font-size:20px; color:var(--blue1); background:linear-gradient(135deg, #0b66c3, #2b9edb); background-clip:text; -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+
+    /* Product boxes */
+    .product{ border:1px solid var(--border); border-radius:14px; overflow:hidden; background:linear-gradient(180deg,#ffffff,#f7fbff); }
+    .product .header{ padding:12px 14px; background:linear-gradient(90deg, rgba(11,102,195,0.08), rgba(43,158,219,0.08)); display:flex; align-items:center; gap:10px; }
+    .product .header img{ height:22px; width:auto; }
+    .product .body{ padding:14px; }
+    .bullets{ margin:8px 0 0; padding-left:16px; }
+    .bullets li{ margin:4px 0; font-size:13px; }
+
+    /* Logos grid */
+    .logo-tile{ border:1px solid var(--border); border-radius:12px; background:#fff; height:68px; display:flex; align-items:center; justify-content:center; padding:10px; }
+    .logo{ max-height:40px; width:auto; object-fit:contain; }
+
+    /* Footer bar */
+    .footer-bar{ background:linear-gradient(90deg, var(--blue1), var(--blue2)); color:#fff; padding:12px 16px; border-radius:10px; display:flex; justify-content:space-between; gap:10px; font-size:12px; }
+
+    /* Helpers */
+    .mt-8{ margin-top:8px; } .mt-12{ margin-top:12px; } .mt-16{ margin-top:16px; } .mt-20{ margin-top:20px; }
+    .mb-0{ margin-bottom:0; }
+  </style>
+</head>
+<body>
+  <!-- COVER PAGE -->
+  <section class="sheet cover page page-break">
+    <div class="cover-bg"></div>
+    <img class="cover-bg-img" src="./image.png?v=1" alt="Cover" />
+    <div class="cover-overlay"></div>
+    <div class="cover-content">
+      <div>
+        <div class="brand">
+          <img src="https://webutsav.com/favicon.ico" alt="WebUtsav" />
+          <div>
+            <div class="name">WebUtsav Pvt. Ltd.</div>
+            <div class="tagline">Celebrating Tech with Creativity</div>
+          </div>
+        </div>
+      </div>
+      <div class="cover-spacer"></div>
+      <div class="cover-footer">
+        <div class="title-block">
+          <h1 class="title">Company Portfolio 2025</h1>
+          <p class="subtitle">Innovation for Tomorrow</p>
+        </div>
+        <div class="contact">
+          <div><strong>Website:</strong> <a href="https://webutsav.com" target="_blank" rel="noreferrer">webutsav.com</a></div>
+          <div><strong>Contact:</strong> <a href="mailto:info@webutsav.com">info@webutsav.com</a> | +91 87669 22792</div>
+          <div><strong>Address:</strong> Office No. 115, City Vista, Kharadi, Pune, Maharashtra 411014</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INTRO & LEADERSHIP -->
+  <section class="sheet page">
+    <div class="pill">Company Introduction</div>
+    <h2 class="section-title mt-12"><i class="ri-building-4-line icon"></i>WebUtsav Pvt. Ltd.</h2>
+    <div class="hr"></div>
+    <div class="grid-2">
+      <div class="card">
+        <p class="muted">WebUtsav Pvt. Ltd. is a full‑stack IT company providing software development, digital marketing, and cloud services. We build scalable products and measurable campaigns that help businesses grow.</p>
+        <p class="muted mt-12"><strong>Mission:</strong> Deliver innovative, scalable, and impactful tech solutions for businesses globally.</p>
+        <p class="muted"><strong>Vision:</strong> Digital empowerment through smart technology.</p>
+      </div>
+      <div class="card">
+        <h3 class="mb-0" style="font-family:Poppins; font-size:14px;">Leadership</h3>
+        <div class="hr" style="margin:6px 0 10px;"></div>
+        <div class="icon-box"><i class="ri-user-star-line"></i><div><strong>Mr. Aslam Hasan Pathan</strong><br/><span class="muted">CEO, strategic leader driving digital innovation.</span></div></div>
+        <div class="icon-box mt-12"><i class="ri-user-settings-line"></i><div><strong>Mr. Somnath Narayan Jadhav</strong><br/><span class="muted">Co‑founder & Technical Head ensuring delivery excellence.</span></div></div>
+      </div>
+    </div>
+
+    <div class="pill mt-20">About Our Team</div>
+    <h2 class="section-title mt-12"><i class="ri-team-line icon"></i>Team Composition</h2>
+    <div class="hr"></div>
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="margin-top:0">IT / Product Team</h3>
+        <p class="muted">Developers, designers, and engineers skilled in React, Next.js, Spring Boot, Flutter, AWS, PostgreSQL.</p>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Digital Marketing Team</h3>
+        <p class="muted">Specialists in SEO, PPC, SMM, branding, and content marketing—focused on ROI and brand growth.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXPERTISE & SERVICES -->
+  <section class="sheet page">
+    <div class="pill">Our Expertise</div>
+    <h2 class="section-title mt-12"><i class="ri-lightbulb-flash-line icon"></i>Capabilities</h2>
+    <div class="hr"></div>
+    <div class="grid-3">
+      <div class="icon-box"><i class="ri-code-s-slash-line"></i><div>Full‑stack development</div></div>
+      <div class="icon-box"><i class="ri-smartphone-line"></i><div>Mobile apps (Flutter, React Native)</div></div>
+      <div class="icon-box"><i class="ri-cloud-line"></i><div>Cloud & AWS DevOps</div></div>
+      <div class="icon-box"><i class="ri-palette-line"></i><div>UI/UX Design</div></div>
+      <div class="icon-box"><i class="ri-whatsapp-line"></i><div>WhatsApp CRM & Automation</div></div>
+      <div class="icon-box"><i class="ri-megaphone-line"></i><div>SEO, Google Ads & Social Media Marketing</div></div>
+    </div>
+
+    <div class="pill mt-20">Services We Provide</div>
+    <h2 class="section-title mt-12"><i class="ri-briefcase-4-line icon"></i>Services</h2>
+    <div class="hr"></div>
+    <div class="grid-3">
+      <div class="card"><h3 style="margin-top:0"><i class="ri-window-line"></i> IT Solutions</h3><p class="muted">Web, mobile, and enterprise applications engineered for performance and scale.</p></div>
+      <div class="card"><h3 style="margin-top:0"><i class="ri-bubble-chart-line"></i> Digital Marketing</h3><p class="muted">SEO, PPC, branding, and social campaigns delivering measurable ROI.</p></div>
+      <div class="card"><h3 style="margin-top:0"><i class="ri-cloud-windy-line"></i> Cloud & AWS</h3><p class="muted">Deployment, scaling, optimization, monitoring, and cost control.</p></div>
+    </div>
+  </section>
+
+  <!-- PRODUCTS -->
+  <section class="sheet page">
+    <div class="pill">Our IT Products</div>
+    <h2 class="section-title mt-12"><i class="ri-apps-2-line icon"></i>Products</h2>
+    <div class="hr"></div>
+
+    <div class="grid-2">
+      <div class="product">
+        <div class="header">
+          <img src="https://managifyhr.com/favicon.ico" alt="ManagifyHR" referrerpolicy="no-referrer" crossorigin="anonymous" onerror="this.src='https://www.google.com/s2/favicons?domain=managifyhr.com&sz=64'" />
+          <strong>ManagifyHR (HRM)</strong>
+        </div>
+        <div class="body">
+          <p class="muted">A full HRM system (mobile + admin panel) for attendance, payroll, and leave management.</p>
+          <ul class="bullets">
+            <li>Geo‑fencing & live location tracking</li>
+            <li>Multi‑language support</li>
+            <li>Payroll automation & notifications</li>
+            <li>Document management, recruitment, recognition</li>
+          </ul>
+          <p class="mt-12"><a href="https://managifyhr.com" target="_blank" rel="noreferrer">managifyhr.com</a></p>
+        </div>
+      </div>
+      <div class="product">
+        <div class="header">
+          <img src="https://routebudget.com/favicon.ico" alt="RouteBudget" referrerpolicy="no-referrer" crossorigin="anonymous" onerror="this.src='https://www.google.com/s2/favicons?domain=routebudget.com&sz=64'" />
+          <strong>RouteBudget</strong>
+        </div>
+        <div class="body">
+          <p class="muted">Fleet & expense management solution for cab/transport companies.</p>
+          <ul class="bullets">
+            <li>Fuel tracking & FastTag management</li>
+            <li>Service logs & cost reports</li>
+            <li>ERP multi‑admin with real‑time uploads</li>
+            <li>Dashboards, alerts, and analytics</li>
+          </ul>
+          <p class="mt-12"><a href="https://routebudget.com" target="_blank" rel="noreferrer">routebudget.com</a></p>
+        </div>
+      </div>
+      <div class="product">
+        <div class="header">
+          <img src="https://webutsav.com/favicon.ico" alt="WhatsApp CRM" />
+          <strong>WhatsApp CRM (Internal Tool)</strong>
+        </div>
+        <div class="body">
+          <p class="muted">Automated client messaging integrated with CRM for sales and support.</p>
+          <ul class="bullets">
+            <li>Campaigns & automation</li>
+            <li>Unified inbox & templates</li>
+            <li>Reports & performance metrics</li>
+          </ul>
+        </div>
+      </div>
+      <div class="product">
+        <div class="header">
+          <img src="https://mygarja.com/favicon.ico" alt="MyGarja" referrerpolicy="no-referrer" crossorigin="anonymous" onerror="this.src='https://www.google.com/s2/favicons?domain=mygarja.com&sz=64'" />
+          <strong>MyGarja</strong>
+        </div>
+        <div class="body">
+          <p class="muted">Local commerce and community platform for listings, orders, and engagement.</p>
+          <ul class="bullets">
+            <li>Business listings & product catalog</li>
+            <li>Offers, coupons, and promotions</li>
+            <li>Orders, delivery status, and notifications</li>
+            <li>Vendor dashboard & analytics</li>
+          </ul>
+          <p class="mt-12"><a href="https://mygarja.com" target="_blank" rel="noreferrer">mygarja.com</a></p>
+        </div>
+      </div>
+      <div class="product">
+        <div class="header">
+          <img src="https://webutsav.com/favicon.ico" alt="WTL Tourism" referrerpolicy="no-referrer" crossorigin="anonymous" onerror="this.src='https://www.google.com/s2/favicons?domain=webutsav.com&sz=64'" />
+          <strong>WTL Tourism</strong>
+        </div>
+        <div class="body">
+          <p class="muted">Travel booking and tour management platform for agencies and D2C customers.</p>
+          <ul class="bullets">
+            <li>Package catalog with pricing & inclusions</li>
+            <li>Itinerary builder & lead management</li>
+            <li>Online booking, payments & invoices</li>
+            <li>Vendor management & vouchers</li>
+          </ul>
+          <p class="mt-12"><span class="muted">URL on request</span></p>
+        </div>
+      </div>
+      <div class="product">
+        <div class="header">
+          <img src="https://silksew.com/favicon.ico" alt="SilkSew" referrerpolicy="no-referrer" crossorigin="anonymous" onerror="this.src='https://www.google.com/s2/favicons?domain=silksew.com&sz=64'" />
+          <strong>SilkSew</strong>
+        </div>
+        <div class="body">
+          <p class="muted">Online tailoring and fashion commerce platform.</p>
+          <ul class="bullets">
+            <li>Fabric catalog & custom stitching</li>
+            <li>Measurements & size profiles</li>
+            <li>Order tracking & notifications</li>
+            <li>Coupons, ratings, and reviews</li>
+          </ul>
+          <p class="mt-12"><a href="https://silksew.com" target="_blank" rel="noreferrer">silksew.com</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS & CLIENTS -->
+  <section class="sheet page">
+    <div class="pill">Projects & Clients</div>
+    <h2 class="section-title mt-12"><i class="ri-links-line icon"></i>Selected Work</h2>
+    <div class="hr"></div>
+    <div class="grid-4">
+      <a class="logo-tile" href="https://routebudget.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://routebudget.com/favicon.ico" alt="RouteBudget"/></a>
+      <a class="logo-tile" href="https://managifyhr.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://managifyhr.com/favicon.ico" alt="ManagifyHR"/></a>
+      <a class="logo-tile" href="https://aimcabbooking.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://aimcabbooking.com/favicon.ico" alt="AIM Cab Booking"/></a>
+      <a class="logo-tile" href="https://healthfusion.live/" target="_blank" rel="noreferrer"><img class="logo" src="https://healthfusion.live/favicon.ico" alt="HealthFusion"/></a>
+      <a class="logo-tile" href="https://parshuramdairyfarm.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://parshuramdairyfarm.com/favicon.ico" alt="Parshuram Dairy Farm"/></a>
+      <a class="logo-tile" href="https://silksew.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://silksew.com/favicon.ico" alt="Silk Sew"/></a>
+      <a class="logo-tile" href="https://aquapharm-india.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://aquapharm-india.com/favicon.ico" alt="Aquapharm"/></a>
+      <a class="logo-tile" href="https://www.ajcabservices.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://www.ajcabservices.com/favicon.ico" alt="AJ Cab Services"/></a>
+      <a class="logo-tile" href="https://www.rdcabs.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://www.rdcabs.com/favicon.ico" alt="RD Cabs"/></a>
+      <a class="logo-tile" href="https://www.aartitravels.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://www.aartitravels.com/favicon.ico" alt="Aarti Travels"/></a>
+      <a class="logo-tile" href="https://vertexabacus.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://vertexabacus.com/favicon.ico" alt="Vertex Abacus"/></a>
+      <a class="logo-tile" href="https://mygarja.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://mygarja.com/favicon.ico" alt="Garja"/></a>
+      <a class="logo-tile" href="https://www.hyennasecurity.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://www.hyennasecurity.com/favicon.ico" alt="Hyenna Security"/></a>
+      <a class="logo-tile" href="https://tripsnearme.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://tripsnearme.com/favicon.ico" alt="Trips Near Me"/></a>
+      <a class="logo-tile" href="https://www.naazcab.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://www.naazcab.com/favicon.ico" alt="Naaz Cab"/></a>
+      <a class="logo-tile" href="https://www.parmeshwarcabservices.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://www.parmeshwarcabservices.com/favicon.ico" alt="Parmeshwar Cab"/></a>
+    </div>
+  </section>
+
+  <!-- COMPANY DETAILS -->
+  <section class="sheet page">
+    <div class="pill">Company Details</div>
+    <h2 class="section-title mt-12"><i class="ri-map-pin-line icon"></i>Contact & Compliance</h2>
+    <div class="hr"></div>
+    <div class="card">
+      <p class="muted"><strong>Address:</strong> Office No. 115, City Vista, Kharadi, Pune, Maharashtra 411014</p>
+      <p class="muted"><strong>GST No.:</strong> 27AAACW1234Z1ZP</p>
+      <p class="muted"><strong>Email:</strong> <a href="mailto:info@webutsav.com">info@webutsav.com</a> &nbsp; <strong>Phone:</strong> +91 87669 22792</p>
+      <p class="muted"><strong>Website:</strong> <a href="https://webutsav.com" target="_blank" rel="noreferrer">webutsav.com</a></p>
+      <div class="footer-bar mt-16">
+        <div>© WebUtsav Pvt. Ltd. — Empowering Digital Transformation</div>
+        <div>
+          <a href="https://webutsav.com" target="_blank" rel="noreferrer" style="color:#fff; margin-right:10px;"><i class="ri-global-line"></i></a>
+          <a href="#" target="_blank" rel="noreferrer" style="color:#fff; margin-right:10px;"><i class="ri-facebook-circle-line"></i></a>
+          <a href="#" target="_blank" rel="noreferrer" style="color:#fff; margin-right:10px;"><i class="ri-linkedin-box-line"></i></a>
+          <a href="#" target="_blank" rel="noreferrer" style="color:#fff;"><i class="ri-instagram-line"></i></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Notes: Cover image is set to docs/image.png. Replace that file to change the cover. -->
+</body>
+</html>

@@ -72,6 +72,14 @@ const Driver = () => {
   })
   const [errors, setErrors] = useState({})
 
+  // Edit image states (previews and files)
+  const [editProfilePreview, setEditProfilePreview] = useState(null)
+  const [editLicensePreview, setEditLicensePreview] = useState(null)
+  const [editAdharPreview, setEditAdharPreview] = useState(null)
+  const [editProfileFile, setEditProfileFile] = useState(null)
+  const [editLicenseFile, setEditLicenseFile] = useState(null)
+  const [editAdharFile, setEditAdharFile] = useState(null)
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [driversPerPage] = useState(5)
@@ -220,9 +228,41 @@ const Driver = () => {
       salaryType: salaryType,
       perTripRate: perTripRate
     })
+    // Initialize previews with existing images and clear selected files
+    setEditProfilePreview(driver.profileImage || null)
+    setEditLicensePreview(driver.licenseNoImage || null)
+    setEditAdharPreview(driver.adharNoImage || null)
+    setEditProfileFile(null)
+    setEditLicenseFile(null)
+    setEditAdharFile(null)
     setIsEditMode(true)
     setSelectedDriver(driver)
     setErrors({})
+  }
+
+  // Edit image change handlers
+  const handleEditProfileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setEditProfileFile(file)
+      setEditProfilePreview(URL.createObjectURL(file))
+    }
+  }
+
+  const handleEditLicenseChange = (e) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setEditLicenseFile(file)
+      setEditLicensePreview(URL.createObjectURL(file))
+    }
+  }
+
+  const handleEditAdharChange = (e) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setEditAdharFile(file)
+      setEditAdharPreview(URL.createObjectURL(file))
+    }
   }
 
   const handleDelete = async (id) => {
@@ -251,13 +291,33 @@ const Driver = () => {
     }
 
     try {
-      // Update driver details
-      await axios.put(`${baseURL}api/driver/profile/${editFormData.id}`, editFormData, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      })
+      const token = localStorage.getItem("token")
+      const url = `${baseURL}api/driver/profile/${editFormData.id}`
+
+      let response
+      if (editProfileFile || editLicenseFile || editAdharFile) {
+        const formData = new FormData()
+        // append text fields
+        formData.append("name", editFormData.name || "")
+        formData.append("email", editFormData.email || "")
+        formData.append("adharNo", editFormData.adharNo || "")
+        formData.append("licenseNo", editFormData.licenseNo || "")
+        formData.append("phone", editFormData.phone || "")
+        // append files if present
+        if (editProfileFile) formData.append("profileImage", editProfileFile)
+        if (editLicenseFile) formData.append("licenseNoImage", editLicenseFile)
+        if (editAdharFile) formData.append("adharNoImage", editAdharFile)
+
+        response = await axios.put(url, formData, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      } else {
+        response = await axios.put(url, editFormData, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      }
 
       // Update salary if changed
-      const token = localStorage.getItem("token")
       const subAdminId = localStorage.getItem("id")
       if (editFormData.salary || editFormData.perTripRate) {
         try {
@@ -286,10 +346,15 @@ const Driver = () => {
         }
       }
 
-      setDrivers((prevDrivers) => prevDrivers.map((d) => (d.id === editFormData.id ? editFormData : d)))
+      const updatedDriver = response?.data?.updatedDriver || editFormData
+      setDrivers((prevDrivers) => prevDrivers.map((d) => (d.id === updatedDriver.id ? { ...d, ...updatedDriver } : d)))
 
       setIsEditMode(false)
       setSelectedDriver(null)
+      // clear selected files after save
+      setEditProfileFile(null)
+      setEditLicenseFile(null)
+      setEditAdharFile(null)
       toast.success("Driver details updated successfully!")
     } catch (error) {
       console.error("Error updating driver:", error)
@@ -686,15 +751,58 @@ const Driver = () => {
         {/* Edit Driver Modal */}
         {isEditMode && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center  bg-opacity-50 p-4">
-            <div className="bg-white rounded-lg w-full max-w-md p-6 relative shadow-xl">
+            <div className="bg-white rounded-lg w-full max-w-2xl p-6 relative shadow-xl flex flex-col">
               <button
                 className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors"
                 onClick={() => setIsEditMode(false)}
               >
                 <FiX size={24} />
               </button>
-              <h2 className="text-xl md:text-2xl font-semibold mb-6 text-gray-900">Edit Driver</h2>
-              <div className="space-y-4">
+              <h2 className="text-2xl font-semibold mb-4 text-gray-900">Edit Driver</h2>
+              <div className="space-y-3">
+                {/* Image previews and replace inputs */}
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center">
+                    <div className="w-24 h-24 mx-auto border rounded overflow-hidden bg-gray-50">
+                      {editProfilePreview ? (
+                        <Image src={editProfilePreview} alt="Profile" width={96} height={96} className="w-full h-full object-cover" unoptimized />
+                       ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Image</div>
+                      )}
+                    </div>
+                    <label className="mt-1 inline-block text-[11px] text-blue-600 hover:underline cursor-pointer">
+                      Replace
+                      <input type="file" accept="image/*" className="hidden" onChange={handleEditProfileChange} />
+                    </label>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-24 h-24 mx-auto border rounded overflow-hidden bg-gray-50">
+                      {editLicensePreview ? (
+                        <Image src={editLicensePreview} alt="License" width={96} height={96} className="w-full h-full object-cover" unoptimized />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Image</div>
+                      )}
+                    </div>
+                    <label className="mt-1 inline-block text-[11px] text-blue-600 hover:underline cursor-pointer">
+                      Replace
+                      <input type="file" accept="image/*" className="hidden" onChange={handleEditLicenseChange} />
+                    </label>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-24 h-24 mx-auto border rounded overflow-hidden bg-gray-50">
+                      {editAdharPreview ? (
+                        <Image src={editAdharPreview} alt="Aadhaar" width={96} height={96} className="w-full h-full object-cover" unoptimized />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Image</div>
+                      )}
+                    </div>
+                    <label className="mt-1 inline-block text-[11px] text-blue-600 hover:underline cursor-pointer">
+                      Replace
+                      <input type="file" accept="image/*" className="hidden" onChange={handleEditAdharChange} />
+                    </label>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                 {[
                   { label: "Driver Name", field: "name" },
                   { label: "Email", field: "email", type: "email" },
@@ -703,12 +811,12 @@ const Driver = () => {
                   { label: "Contact", field: "phone" },
                 ].map(({ label, field, type = "text", disabled = false }) => (
                   <div key={field}>
-                    <label className="block text-sm font-medium mb-2 text-gray-700">{label}</label>
+                    <label className="block text-sm font-medium mb-1 text-gray-700">{label}</label>
                     <input
                       type={type}
                       value={editFormData[field] || ""}
                       onChange={(e) => setEditFormData({ ...editFormData, [field]: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base bg-white text-gray-900 focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
                       disabled={disabled}
                       min={type === "number" ? "0" : undefined}
                       step={type === "number" ? "0.01" : undefined}
@@ -716,14 +824,15 @@ const Driver = () => {
                     {errors[field] && <p className="text-red-500 text-sm mt-1">{errors[field]}</p>}
                   </div>
                 ))}
+                </div>
                 
                 {/* Salary Type Selector */}
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-700">Salary Type</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <label className="block text-sm font-medium mb-1 text-gray-700">Salary Type</label>
                   <select
                     value={editFormData.salaryType || "fixed"}
                     onChange={(e) => setEditFormData({ ...editFormData, salaryType: e.target.value })}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base bg-white text-gray-900 focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
                   >
                     <option value="fixed">Fixed Monthly Salary</option>
                     <option value="per-trip">Per Trip Salary</option>
@@ -732,26 +841,26 @@ const Driver = () => {
 
                 {/* Conditional Salary Fields */}
                 {editFormData.salaryType === "fixed" ? (
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700">Fixed Monthly Salary</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="block text-sm font-medium mb-1 text-gray-700">Fixed Monthly Salary</label>
                     <input
                       type="number"
                       value={editFormData.salary || ""}
                       onChange={(e) => setEditFormData({ ...editFormData, salary: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base bg-white text-gray-900 focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
                       min="0"
                       step="0.01"
                     />
                     {errors.salary && <p className="text-red-500 text-sm mt-1">{errors.salary}</p>}
                   </div>
                 ) : (
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700">Per Trip Rate</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <label className="block text-sm font-medium mb-1 text-gray-700">Per Trip Rate</label>
                     <input
                       type="number"
                       value={editFormData.perTripRate || ""}
                       onChange={(e) => setEditFormData({ ...editFormData, perTripRate: e.target.value })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white text-gray-900 focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base bg-white text-gray-900 focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
                       min="0"
                       step="0.01"
                     />
@@ -759,16 +868,16 @@ const Driver = () => {
                   </div>
                 )}
               </div>
-              <div className="mt-6 flex justify-end gap-3">
+              <div className="mt-4 flex justify-end gap-3 pt-4 border-t border-gray-200">
                 <button
                   onClick={() => setIsEditMode(false)}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 text-base border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleEditSubmit}
-                  className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-black rounded-lg transition-colors font-medium"
+                  className="px-4 py-2 text-base bg-yellow-400 hover:bg-yellow-500 text-black rounded-lg transition-colors font-medium"
                 >
                   Save Changes
                 </button>

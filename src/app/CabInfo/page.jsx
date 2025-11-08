@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import Sidebar from "../slidebar/page"
 import axios from "axios"
-import { MapPin, X, Truck, ChevronLeft, ChevronRight } from "lucide-react"
+import { MapPin, X, Truck, ChevronLeft, ChevronRight, Pencil, Trash, Info } from "lucide-react"
 import LeafletMap from "../components/LeafletMap"
 import InvoiceButton from "../components/InvoiceButton"
 import baseURL from "@/utils/api"
@@ -15,7 +15,6 @@ const AccessDeniedModal = () => {
   const handleClose = () => {
     router.push("/")
   }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-70">
       <div className="bg-white text-black p-8 rounded-lg shadow-lg max-w-sm w-full">
@@ -64,6 +63,183 @@ const CabSearch = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [recordsPerPage] = useState(10) // Fixed to 10 records per page
 
+  // Reassign modal state
+  const [showReassignModal, setShowReassignModal] = useState(false)
+  const [reassignAssignment, setReassignAssignment] = useState(null)
+  const [driversList, setDriversList] = useState([])
+  const [cabsList, setCabsList] = useState([])
+  const [selectedDriverId, setSelectedDriverId] = useState("")
+  const [selectedCabId, setSelectedCabId] = useState("")
+  const [reassignLoading, setReassignLoading] = useState(false)
+  const [reassignCurrent, setReassignCurrent] = useState({ driverId: "", driverName: "", cabId: "", cabNumber: "" })
+
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editAssignment, setEditAssignment] = useState(null)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [detailsAssignment, setDetailsAssignment] = useState(null)
+  const [editForm, setEditForm] = useState({
+    customerName: "",
+    customerPhone: "",
+    pickupLocation: "",
+    dropLocation: "",
+    scheduledPickupTime: "",
+    estimatedDistance: "",
+    estimatedFare: "",
+    duration: "",
+    tripType: "",
+    vehicleType: "",
+    paymentMode: "",
+    specialInstructions: "",
+    adminNotes: "",
+  })
+
+  // Reassign helpers (inside CabSearch)
+  const fetchReassignData = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token")
+      if (!token) return
+      const res = await axios.get(`${baseURL}api/assigncab/freeCabsAndDrivers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setDriversList(Array.isArray(res.data?.freeDrivers) ? res.data.freeDrivers : [])
+      setCabsList(Array.isArray(res.data?.freeCabs) ? res.data.freeCabs : [])
+    } catch (e) {
+      setDriversList([])
+      setCabsList([])
+    }
+  }, [])
+
+  const openReassign = (assignment) => {
+    setReassignAssignment(assignment)
+    const curDriverId = assignment?.Driver?.id ? String(assignment.Driver.id) : ""
+    const curDriverName = assignment?.Driver?.name || ""
+    const curCabId = assignment?.CabsDetail?.id ? String(assignment.CabsDetail.id) : ""
+    const curCabNumber = assignment?.CabsDetail?.cabNumber || ""
+    setSelectedDriverId(curDriverId)
+    setSelectedCabId(curCabId)
+    setReassignCurrent({ driverId: curDriverId, driverName: curDriverName, cabId: curCabId, cabNumber: curCabNumber })
+    setShowReassignModal(true)
+    showNotification("Opening reassign...")
+    console.log("Open Reassign for:", assignment)
+    fetchReassignData()
+  }
+
+  const handleConfirmReassign = async () => {
+    if (!reassignAssignment || !selectedDriverId || !selectedCabId) {
+      setError("Please select both driver and cab")
+      setTimeout(() => setError(null), 3000)
+      return
+    }
+    try {
+      setReassignLoading(true)
+      const token = localStorage.getItem("token")
+      const adminIdLS = localStorage.getItem("id")
+      const headers = { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+
+      // Reassign in-place to preserve customer/trip fields
+      const selCab = cabsList.find((c) => c.id?.toString() === selectedCabId?.toString())
+      const payload = { driverId: selectedDriverId, cabNumber: selCab?.cabNumber || selectedCabId }
+      const createRes = await axios.put(`${baseURL}api/assigncab/reassign/${reassignAssignment.id}`, payload, headers)
+      if (createRes.status >= 200 && createRes.status < 300) {
+        const newAssignment = createRes.data?.assignment
+        setCabDetails(prev => prev.map(it => it.id === reassignAssignment.id
+          ? {
+              ...it,
+              id: newAssignment?.id ?? it.id,
+              Driver: newAssignment?.Driver || { id: selectedDriverId, name: (driversList.find(d=>String(d.id)===String(selectedDriverId))?.name) || it.Driver?.name },
+              CabsDetail: newAssignment?.CabsDetail || { id: selectedCabId, cabNumber: (selCab?.cabNumber) || it.CabsDetail?.cabNumber },
+              status: 'reassigned',
+            }
+          : it))
+        setFilteredCabs(prev => prev.map(it => it.id === reassignAssignment.id
+          ? {
+              ...it,
+              id: newAssignment?.id ?? it.id,
+              Driver: newAssignment?.Driver || { id: selectedDriverId, name: (driversList.find(d=>String(d.id)===String(selectedDriverId))?.name) || it.Driver?.name },
+              CabsDetail: newAssignment?.CabsDetail || { id: selectedCabId, cabNumber: (selCab?.cabNumber) || it.CabsDetail?.cabNumber },
+              status: 'reassigned',
+            }
+          : it))
+        setShowReassignModal(false)
+        setNotification("Reassigned successfully")
+        setTimeout(() => setNotification(""), 3000)
+      }
+    } catch (e) {
+      let msg = e?.response?.data?.message || e?.message || "Failed to reassign. Please try again."
+      if (e?.response?.status === 404) {
+        msg = "Reassign failed: Assignment not found. Please refresh and try again."
+      }
+      setError(msg)
+      setTimeout(() => setError(null), 4000)
+    } finally {
+      setReassignLoading(false)
+    }
+  }
+
+  // Edit & Delete handlers
+  const openEdit = (assignment) => {
+    setEditAssignment(assignment)
+    setEditForm({
+      customerName: assignment.customerName || "",
+      customerPhone: assignment.customerPhone || "",
+      pickupLocation: assignment.pickupLocation || assignment.locationFrom || "",
+      dropLocation: assignment.dropLocation || assignment.locationTo || "",
+      scheduledPickupTime: assignment.scheduledPickupTime ? new Date(assignment.scheduledPickupTime).toISOString().slice(0,16) : "",
+      estimatedDistance: assignment.estimatedDistance || assignment.totalDistance || "",
+      estimatedFare: assignment.estimatedFare || "",
+      duration: assignment.duration || "",
+      tripType: assignment.tripType || "",
+      vehicleType: assignment.vehicleType || "",
+      paymentMode: assignment.paymentMode || "",
+      specialInstructions: assignment.specialInstructions || "",
+      adminNotes: assignment.adminNotes || "",
+    })
+    setShowEditModal(true)
+  }
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target
+    setEditForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editAssignment) return
+    try {
+      const token = localStorage.getItem("token")
+      const headers = { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+      const res = await axios.put(`${baseURL}api/assigncab/edit/${editAssignment.id}`, editForm, headers)
+      if (res.status >= 200 && res.status < 300) {
+        const updated = res.data?.assignment || null
+        setCabDetails((prev) => prev.map((it) => it.id === editAssignment.id ? { ...it, ...updated } : it))
+        setFilteredCabs((prev) => prev.map((it) => it.id === editAssignment.id ? { ...it, ...updated } : it))
+        setShowEditModal(false)
+        setNotification("Booking updated successfully")
+        setTimeout(() => setNotification(""), 3000)
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || "Failed to update booking")
+      setTimeout(() => setError(null), 4000)
+    }
+  }
+
+  const handleDeleteBooking = async (assignment) => {
+    if (!assignment) return
+    const confirmed = window.confirm("Delete this booking?")
+    if (!confirmed) return
+    try {
+      const token = localStorage.getItem("token")
+      const headers = { headers: { Authorization: `Bearer ${token}` } }
+      await axios.delete(`${baseURL}api/assigncab/${assignment.id}`, headers)
+      setCabDetails((prev) => prev.filter((it) => it.id !== assignment.id))
+      setFilteredCabs((prev) => prev.filter((it) => it.id !== assignment.id))
+      setNotification("Booking deleted successfully")
+      setTimeout(() => setNotification(""), 3000)
+    } catch (err) {
+      setError(err?.response?.data?.message || "Failed to delete booking")
+      setTimeout(() => setError(null), 4000)
+    }
+  }
+
   const getFilteredCabs = useCallback(() => {
     let filtered = cabDetails
     if (statusFilter !== "all") {
@@ -110,6 +286,28 @@ const CabSearch = () => {
   useEffect(() => {
     setFilteredCabs(getFilteredCabs())
   }, [getFilteredCabs])
+
+  // Cancel trip: unassign and mark as cancelled in UI
+  const handleCancelTrip = async (assignmentId) => {
+    try {
+      const token = localStorage.getItem("token")
+      const headers = { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+      // try URL param, then body
+      try {
+        await axios.put(`${baseURL}api/assigncab/${assignmentId}`, {}, headers)
+      } catch (e1) {
+        await axios.put(`${baseURL}api/assigncab`, { id: assignmentId }, headers)
+      }
+      // Update status locally to show red cancelled badge
+      setCabDetails(prev => prev.map(it => it.id === assignmentId ? { ...it, status: 'cancelled' } : it))
+      setFilteredCabs(prev => prev.map(it => it.id === assignmentId ? { ...it, status: 'cancelled' } : it))
+      setNotification("Trip cancelled successfully")
+      setTimeout(() => setNotification(""), 3000)
+    } catch (err) {
+      setError("Failed to cancel trip. Please try again.")
+      setTimeout(() => setError(null), 4000)
+    }
+  }
 
   const handleCompleteTrip = async (assignmentId) => {
     try {
@@ -268,7 +466,7 @@ const CabSearch = () => {
     try {
       const token = localStorage.getItem("token")
       // Explicitly pass limit=10 to ensure 10 records per page
-      const res = await axios.get(`${baseURL}api/assigncab?page=${page}&limit=${recordsPerPage}`, {
+      const res = await axios.get(`${baseURL}api/assigncab?page=${page}&limit=${recordsPerPage}&_=${Date.now()}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -296,7 +494,7 @@ const CabSearch = () => {
         const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
 
         // Explicitly set limit to 10 records per page
-        const res = await axios.get(`${baseURL}api/assigncab?page=1&limit=${recordsPerPage}`, {
+        const res = await axios.get(`${baseURL}api/assigncab?page=1&limit=${recordsPerPage}&_=${Date.now()}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
 
@@ -395,7 +593,7 @@ const CabSearch = () => {
     try {
       const token = localStorage.getItem("token")
       // Include limit in search as well
-      const res = await axios.get(`${baseURL}api/assigncab?cabNumber=${encodeURIComponent(cabNumber)}&limit=${recordsPerPage}`, {
+      const res = await axios.get(`${baseURL}api/assigncab?cabNumber=${encodeURIComponent(cabNumber)}&limit=${recordsPerPage}&_=${Date.now()}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
 
@@ -451,6 +649,15 @@ const CabSearch = () => {
   const closeImageModal = () => {
     setImageModalOpen(false)
     setSelectedImage("")
+  }
+
+  const openDetails = (assignment) => {
+    setDetailsAssignment(assignment)
+    setShowDetailsModal(true)
+  }
+  const closeDetails = () => {
+    setShowDetailsModal(false)
+    setDetailsAssignment(null)
   }
 
   const handleLocationClick = (item) => {
@@ -808,6 +1015,216 @@ const CabSearch = () => {
           </div>
         )}
 
+        {showDetailsModal && detailsAssignment && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-md p-4">
+            <div className="bg-white text-black w-full max-w-2xl rounded-lg shadow-lg p-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold">Trip Details</h2>
+                <button onClick={closeDetails} className="text-gray-500 hover:text-gray-800">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-4 rounded border">
+                  <h3 className="font-semibold text-gray-900 mb-2">Customer</h3>
+                  <p className="text-sm text-gray-700">Name: {detailsAssignment.customerName || "N/A"}</p>
+                  <p className="text-sm text-gray-700">Phone: {detailsAssignment.customerPhone || "N/A"}</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded border">
+                  <h3 className="font-semibold text-gray-900 mb-2">Driver</h3>
+                  <p className="text-sm text-gray-700">Name: {detailsAssignment.Driver?.name || "N/A"}</p>
+                  <p className="text-sm text-gray-700">ID: {detailsAssignment.Driver?.id || "N/A"}</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded border">
+                  <h3 className="font-semibold text-gray-900 mb-2">Cab</h3>
+                  <p className="text-sm text-gray-700">Number: {detailsAssignment.CabsDetail?.cabNumber || "N/A"}</p>
+                  <p className="text-sm text-gray-700">Model: {detailsAssignment.CabsDetail?.model || "N/A"}</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded border">
+                  <h3 className="font-semibold text-gray-900 mb-2">Payment</h3>
+                  <p className="text-sm text-gray-700">Mode: {detailsAssignment.paymentMode || "N/A"}</p>
+                  <p className="text-sm text-gray-700">Cash Collected: {typeof detailsAssignment.cashCollected === 'number' ? `₹${detailsAssignment.cashCollected}` : "N/A"}</p>
+                  <p className="text-sm text-gray-700">Estimated Fare: {detailsAssignment.estimatedFare ? `₹${detailsAssignment.estimatedFare}` : "N/A"}</p>
+                  <p className="text-sm text-gray-700">Actual Fare: {detailsAssignment.actualFare ? `₹${detailsAssignment.actualFare}` : "N/A"}</p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded border md:col-span-2">
+                  <h3 className="font-semibold text-gray-900 mb-2">Trip</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <p className="text-sm text-gray-700">Status: {detailsAssignment.status || "N/A"}</p>
+                    <p className="text-sm text-gray-700">Assigned: {detailsAssignment.assignedAt ? new Date(detailsAssignment.assignedAt).toLocaleString() : "N/A"}</p>
+                    <p className="text-sm text-gray-700">Pickup Time: {detailsAssignment.scheduledPickupTime ? new Date(detailsAssignment.scheduledPickupTime).toLocaleString() : "N/A"}</p>
+                    <p className="text-sm text-gray-700">Drop Time: {detailsAssignment.dropTime ? new Date(detailsAssignment.dropTime).toLocaleString() : "N/A"}</p>
+                    <p className="text-sm text-gray-700">Trip Type: {detailsAssignment.tripType || "N/A"}</p>
+                    <p className="text-sm text-gray-700">Vehicle Type: {detailsAssignment.vehicleType || "N/A"}</p>
+                    <p className="text-sm text-gray-700">Distance: {detailsAssignment.totalDistance || detailsAssignment.estimatedDistance || "N/A"} KM</p>
+                    <p className="text-sm text-gray-700">Duration: {detailsAssignment.duration || "N/A"}</p>
+                    <p className="text-sm text-gray-700 md:col-span-2">Pickup: {detailsAssignment.locationFrom || detailsAssignment.pickupLocation || "N/A"}</p>
+                    <p className="text-sm text-gray-700 md:col-span-2">Drop: {detailsAssignment.locationTo || detailsAssignment.dropLocation || "N/A"}</p>
+                    {detailsAssignment.specialInstructions && (
+                      <p className="text-sm text-gray-700 md:col-span-2">Instructions: {detailsAssignment.specialInstructions}</p>
+                    )}
+                    {detailsAssignment.adminNotes && (
+                      <p className="text-sm text-gray-700 md:col-span-2">Admin Notes: {detailsAssignment.adminNotes}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end mt-4">
+                <button onClick={closeDetails} className="px-4 py-2 rounded bg-yellow-500 text-black">Close</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showEditModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-md">
+            <div className="bg-white text-black w-full max-w-xl rounded-lg shadow-lg p-5 text-sm max-h-[85vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold">Edit Booking</h2>
+                <button onClick={() => setShowEditModal(false)} className="text-gray-500 hover:text-gray-800">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs mb-1">Customer Name</label>
+                  <input name="customerName" value={editForm.customerName} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Customer Phone</label>
+                  <input name="customerPhone" value={editForm.customerPhone} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs mb-1">Pickup Location</label>
+                  <input name="pickupLocation" value={editForm.pickupLocation} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs mb-1">Drop Location</label>
+                  <input name="dropLocation" value={editForm.dropLocation} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Pickup Time</label>
+                  <input type="datetime-local" name="scheduledPickupTime" value={editForm.scheduledPickupTime} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Estimated Distance (KM)</label>
+                  <input name="estimatedDistance" value={editForm.estimatedDistance} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Estimated Fare</label>
+                  <input name="estimatedFare" value={editForm.estimatedFare} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Duration (hrs)</label>
+                  <input name="duration" value={editForm.duration} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Trip Type</label>
+                  <input name="tripType" value={editForm.tripType} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Vehicle Type</label>
+                  <input name="vehicleType" value={editForm.vehicleType} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs mb-1">Payment Mode</label>
+                  <input name="paymentMode" value={editForm.paymentMode} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs mb-1">Special Instructions</label>
+                  <textarea name="specialInstructions" value={editForm.specialInstructions} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs mb-1">Admin Notes</label>
+                  <textarea name="adminNotes" value={editForm.adminNotes} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <button className="px-3 py-2 rounded bg-gray-100" onClick={() => setShowEditModal(false)}>Cancel</button>
+                <button className="px-3 py-2 rounded bg-yellow-500 text-black" onClick={handleSaveEdit}>Save</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showReassignModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Reassign Trip</h2>
+                <button onClick={() => setShowReassignModal(false)} className="text-gray-400 hover:text-gray-600">
+                  <X size={20} />
+                </button>
+              </div>
+              {(reassignCurrent.driverName || reassignCurrent.cabNumber) && (
+                <div className="mb-4 p-3 rounded bg-gray-50 border">
+                  {reassignCurrent.driverName && (
+                    <p className="text-sm text-gray-700"><strong>Current Driver:</strong> {reassignCurrent.driverName}</p>
+                  )}
+                  {reassignCurrent.cabNumber && (
+                    <p className="text-sm text-gray-700"><strong>Current Cab:</strong> {reassignCurrent.cabNumber}</p>
+                  )}
+                </div>
+              )}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Driver</label>
+                  <select
+                    value={selectedDriverId}
+                    onChange={(e) => setSelectedDriverId(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-black"
+                  >
+                    <option value="">Choose a driver</option>
+                    {reassignCurrent.driverId && !driversList.some(d => String(d.id) === String(reassignCurrent.driverId)) && (
+                      <option value={reassignCurrent.driverId}>{reassignCurrent.driverName || reassignCurrent.driverId} (current)</option>
+                    )}
+                    {driversList.map((d) => (
+                      <option key={d.id} value={String(d.id)}>
+                        {d.name || d.fullName || d.username || d.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Cab</label>
+                  <select
+                    value={selectedCabId}
+                    onChange={(e) => setSelectedCabId(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent text-black"
+                  >
+                    <option value="">Choose a cab</option>
+                    {reassignCurrent.cabId && !cabsList.some(c => String(c.id) === String(reassignCurrent.cabId)) && (
+                      <option value={reassignCurrent.cabId}>{reassignCurrent.cabNumber || reassignCurrent.cabId} (current)</option>
+                    )}
+                    {cabsList.map((c) => (
+                      <option key={c.id} value={String(c.id)}>
+                        {c.cabNumber || c.id}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="mt-6 grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setShowReassignModal(false)}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium border border-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmReassign}
+                  disabled={reassignLoading}
+                  className="bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-300 text-black px-4 py-2 rounded-lg text-sm font-medium"
+                >
+                  {reassignLoading ? "Reassigning..." : "Confirm Reassign"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center gap-2 mb-4">
           <div className={`h-3 w-3 rounded-full ${wsConnected ? "bg-green-500" : "bg-red-500"}`}></div>
           <span className="text-sm text-gray-600">{wsConnected ? "Connected" : "Disconnected"}</span>
@@ -924,6 +1341,7 @@ const CabSearch = () => {
                       <th className="px-3 py-4 text-left text-sm font-semibold text-gray-900 min-w-[200px]">Drop</th>
                       <th className="px-3 py-4 text-left text-sm font-semibold text-gray-900 min-w-[100px]">Status</th>
                       <th className="px-3 py-4 text-left text-sm font-semibold text-gray-900 min-w-[100px]">Trip</th>
+                      <th className="px-3 py-4 text-left text-sm font-semibold text-gray-900 min-w-[90px]">Action</th>
                       <th className="px-3 py-4 text-left text-sm font-semibold text-gray-900 min-w-[140px]">Details</th>
                       <th className="px-3 py-4 text-left text-sm font-semibold text-gray-900 min-w-[80px]">Location</th>
                       <th className="px-3 py-4 text-left text-sm font-semibold text-gray-900 min-w-[120px]">Invoice</th>
@@ -978,11 +1396,13 @@ const CabSearch = () => {
                           <td className="px-3 py-4">
                             <span
                               className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                item?.status === "assigned"
+                                (item?.status === "assigned" || item?.status === "cancelled")
                                   ? "bg-red-100 text-red-800"
                                   : item?.status === "completed"
                                     ? "bg-green-100 text-green-800"
-                                    : "bg-gray-100 text-gray-800"
+                                    : item?.status === "reassigned"
+                                      ? "bg-purple-100 text-purple-800"
+                                      : "bg-gray-100 text-gray-800"
                               }`}
                             >
                               {item?.status}
@@ -994,14 +1414,59 @@ const CabSearch = () => {
                                 Done
                               </span>
                             ) : (
-                              <button
-                                onClick={() => handleCompleteTrip(item.id)}
-                                disabled={completingTrips[item.id]}
-                                className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-2 py-1 rounded text-xs font-medium transition-colors"
+                              <select
+                                className="border border-gray-300 text-black p-1 rounded text-xs focus:ring-2 focus:ring-yellow-500 focus:border-transparent min-w-[120px]"
+                                onChange={async (e) => {
+                                  const val = e.target.value
+                                  console.log('Trip action selected (desktop):', val)
+                                  if (val === "complete") {
+                                    handleCompleteTrip(item.id)
+                                  } else if (val === "reassign") {
+                                    openReassign(item)
+                                  } else if (val === "cancel") {
+                                    try {
+                                      const token = localStorage.getItem("token")
+                                      const headers = { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+                                      try {
+                                        await axios.put(`${baseURL}api/assigncab/${item.id}?action=cancel`, {}, headers)
+                                      } catch (e1) {
+                                        await axios.put(`${baseURL}api/assigncab`, { id: item.id, action: 'cancel' }, headers)
+                                      }
+                                      setCabDetails(prev => prev.map(it => it.id === item.id ? { ...it, status: 'cancelled' } : it))
+                                      setFilteredCabs(prev => prev.map(it => it.id === item.id ? { ...it, status: 'cancelled' } : it))
+                                      setNotification("Trip cancelled successfully")
+                                      setTimeout(() => setNotification(""), 3000)
+                                    } catch (err) {
+                                      setError("Failed to cancel trip. Please try again.")
+                                      setTimeout(() => setError(null), 4000)
+                                    }
+                                  }
+                                  e.target.selectedIndex = 0
+                                }}
                               >
-                                {completingTrips[item.id] ? "..." : "Complete"}
-                              </button>
+                                <option value="">Select Action</option>
+                                <option value="complete">Complete</option>
+                                <option value="reassign">Reassign</option>
+                                <option value="cancel">Cancelled</option>
+                              </select>
                             )}
+                          </td>
+                          <td className="px-3 py-4">
+                            <div className="flex items-center gap-3">
+                              <button
+                                className="text-gray-600 hover:text-gray-900"
+                                title="Details"
+                                onClick={() => openDetails(item)}
+                              >
+                                <Info size={16} />
+                              </button>
+                              <button className="text-blue-600 hover:text-blue-800" title="Edit" onClick={() => openEdit(item)}>
+                                <Pencil size={16} />
+                              </button>
+                              <button className="text-red-600 hover:text-red-800" title="Delete" onClick={() => handleDeleteBooking(item)}>
+                                <Trash size={16} />
+                              </button>
+                            </div>
                           </td>
                           <td className="px-3 py-4">
                             <select
@@ -1107,11 +1572,13 @@ const CabSearch = () => {
                     <div className="mb-4">
                       <span
                         className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          item?.status === "assigned"
+                          (item?.status === "assigned" || item?.status === "cancelled")
                             ? "bg-red-100 text-red-800"
                             : item?.status === "completed"
                               ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-800"
+                              : item?.status === "reassigned"
+                                ? "bg-purple-100 text-purple-800"
+                                : "bg-gray-100 text-gray-800"
                         }`}
                       >
                         {item?.status}
@@ -1153,14 +1620,53 @@ const CabSearch = () => {
                           Trip Completed
                         </span>
                       ) : (
-                        <button
-                          onClick={() => handleCompleteTrip(item.id)}
-                          disabled={completingTrips[item.id]}
-                          className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full"
+                        <select
+                          className="w-full border border-gray-300 p-2 rounded-lg text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                          onChange={async (e) => {
+                            const val = e.target.value
+                            console.log('Trip action selected (mobile):', val)
+                            if (val === "complete") {
+                              handleCompleteTrip(item.id)
+                            } else if (val === "reassign") {
+                              openReassign(item)
+                            } else if (val === "cancel") {
+                              try {
+                                const token = localStorage.getItem("token")
+                                const headers = { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+                                try {
+                                  await axios.put(`${baseURL}api/assigncab/${item.id}?action=cancel`, {}, headers)
+                                } catch (e1) {
+                                  await axios.put(`${baseURL}api/assigncab`, { id: item.id, action: 'cancel' }, headers)
+                                }
+                                setCabDetails(prev => prev.map(it => it.id === item.id ? { ...it, status: 'cancelled' } : it))
+                                setFilteredCabs(prev => prev.map(it => it.id === item.id ? { ...it, status: 'cancelled' } : it))
+                                setNotification("Trip cancelled successfully")
+                                setTimeout(() => setNotification(""), 3000)
+                              } catch (err) {
+                                setError("Failed to cancel trip. Please try again.")
+                                setTimeout(() => setError(null), 4000)
+                              }
+                            }
+                            e.target.selectedIndex = 0
+                          }}
                         >
-                          {completingTrips[item.id] ? "Completing..." : "Complete Trip"}
-                        </button>
+                          <option value="">Select Action</option>
+                          <option value="complete">Complete</option>
+                          <option value="reassign">Reassign</option>
+                          <option value="cancel">Cancelled</option>
+                        </select>
                       )}
+                    </div>
+                    <div className="flex items-center justify-between mb-4">
+                      <button className="flex items-center gap-1 text-blue-600 border border-blue-200 px-3 py-1 rounded" onClick={() => openEdit(item)}>
+                        <Pencil size={14} /> Edit
+                      </button>
+                      <button className="flex items-center gap-1 text-red-600 border border-red-200 px-3 py-1 rounded" onClick={() => handleDeleteBooking(item)}>
+                        <Trash size={14} /> Delete
+                      </button>
+                      <button className="flex items-center gap-1 text-gray-700 border border-gray-200 px-3 py-1 rounded" onClick={() => openDetails(item)}>
+                        <Info size={14} /> Details
+                      </button>
                     </div>
                     <InvoiceButton
                       item={item}

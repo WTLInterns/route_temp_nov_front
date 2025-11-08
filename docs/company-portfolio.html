@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebUtsav | Company Portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --yellow:#facc15; --black:#0f172a; --gray:#475569; --light:#f8fafc; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color: var(--black); background: var(--light); }
+    a { color: inherit; text-decoration: none; }
+    .container { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+    .header { background: #fff; border-bottom:1px solid #e5e7eb; position: sticky; top:0; z-index:10; }
+    .header-inner { display:flex; align-items:center; justify-content:space-between; padding: 14px 0; }
+    .brand { display:flex; align-items:center; gap:12px; }
+    .brand img { height: 40px; width:auto; border-radius:6px; }
+    .brand h1 { font-size: 18px; font-weight:700; }
+
+    .hero { background: linear-gradient(to right, #fff, #fff7d6); padding: 56px 0; }
+    .hero h2 { font-size: 40px; line-height:1.1; margin: 0 0 10px; }
+    .hero p { font-size: 16px; color: var(--gray); max-width: 760px; }
+
+    section { padding: 40px 0; }
+    h3.section-title { font-size: 24px; margin: 0 0 16px; }
+    p.lead { color: var(--gray); font-size: 15px; }
+
+    .grid-2 { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 18px; }
+    .grid-3 { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 18px; }
+    .grid-4 { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 18px; }
+    @media (max-width: 900px) { .grid-4{grid-template-columns: repeat(3,1fr);} }
+    @media (max-width: 700px) { .grid-4{grid-template-columns: repeat(2,1fr);} .grid-3{grid-template-columns: repeat(2,1fr);} .grid-2{grid-template-columns: 1fr;} }
+
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:18px; }
+    .muted { color: var(--gray); font-size: 14px; }
+    .pill { display:inline-block; background:#fffbeb; border:1px solid #fde68a; color:#a16207; padding:6px 10px; border-radius:999px; font-size:12px; font-weight:600; }
+
+    .logo { height: 38px; width:auto; object-fit: contain; display:block; }
+    .logo-tile { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px; display:flex; align-items:center; justify-content:center; height:84px; }
+
+    .list { margin: 0; padding:0; list-style:none; display:grid; gap:10px; }
+    .list li { display:flex; align-items:flex-start; gap:10px; }
+    .list li span { margin-top: 3px; color:#10b981; }
+
+    .footer { background:#0b1220; color:#cbd5e1; padding: 28px 0; }
+    .footer small { color:#94a3b8; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="container header-inner">
+      <div class="brand">
+        <img src="https://webutsav.com/favicon.ico" alt="WebUtsav" />
+        <h1>WebUtsav</h1>
+      </div>
+      <span class="pill">Company Portfolio</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <h2>Digital Products, Cloud-first Solutions, and Growth Marketing</h2>
+        <p>We design, build, and scale modern applications for web and mobile. Our multidisciplinary team blends software engineering, UI/UX, and digital marketing to help businesses launch faster and grow smarter.</p>
+      </div>
+    </section>
+
+    <section>
+      <div class="container grid-2">
+        <div class="card">
+          <h3 class="section-title">Company Introduction</h3>
+          <p class="lead">WebUtsav is a Digital Marketing & Web Development agency helping businesses accelerate growth with custom solutions. We deliver strategy, design, engineering, deployment, and growth under one roof with an expert team, fast delivery, 24/7 support, and proven results.</p>
+        </div>
+        <div class="card">
+          <h3 class="section-title">CEO</h3>
+          <p class="lead">Our leadership brings hands‑on experience across startups and enterprises, aligning tech execution with business value. Customer success, delivery excellence, and continuous innovation are core to how we operate.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container grid-2">
+        <div class="card">
+          <h3 class="section-title">About Team</h3>
+          <ul class="list">
+            <li><span>•</span><div><strong>IT Team</strong><br/><span class="muted">Full‑stack engineers, DevOps, QA, and solution architects delivering scalable platforms.</span></div></li>
+            <li><span>•</span><div><strong>Digital Marketing Team</strong><br/><span class="muted">SEO, performance ads, content, and creatives focused on ROI.</span></div></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3 class="section-title">Our Expertise</h3>
+          <ul class="list">
+            <li><span>•</span><div>Custom Web & Mobile Apps (React, Next.js, Node.js, React Native)</div></li>
+            <li><span>•</span><div>Cloud & DevOps (AWS, CI/CD, containers, monitoring)</div></li>
+            <li><span>•</span><div>Data & Integrations (APIs, webhooks, analytics)</div></li>
+            <li><span>•</span><div>Digital Marketing (SEO/ASO, performance marketing, automation)</div></li>
+            <li><span>•</span><div>UI/UX Design (design systems, prototyping, accessibility)</div></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container grid-3">
+        <div class="card">
+          <h3 class="section-title">Services We Provide</h3>
+          <ul class="list">
+            <li><span>•</span><div>IT Consulting & Product Engineering</div></li>
+            <li><span>•</span><div>Digital Marketing & Growth</div></li>
+            <li><span>•</span><div>Cloud (AWS) Architecture & Migration</div></li>
+            <li><span>•</span><div>Maintenance, Support & SLA‑based services</div></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3 class="section-title">Products</h3>
+          <ul class="list">
+            <li><span>•</span><div><strong>RouteBudget</strong> — Fleet expense & trip management with ERP-based multi-admin, real-time image uploads, dashboards, and alerts. <a href="https://routebudget.com/" target="_blank" rel="noreferrer">Learn more</a></div></li>
+            <li><span>•</span><div><strong>Managify HR (HRM)</strong> — HRMS with payroll, live location tracking, leaves, recruitment, documents, and employee recognition. <a href="https://managifyhr.com/" target="_blank" rel="noreferrer">Learn more</a></div></li>
+            <li><span>•</span><div><strong>WTL</strong> — Suite with admin panel, website, and apps tailored to industry workflows and operations.</div></li>
+            <li><span>•</span><div><strong>WhatsApp CRM</strong> — Conversations, automation, and campaigns for sales and support on WhatsApp.</div></li>
+            <li><span>•</span><div><strong>AIM Cab Booking</strong> — Outstation cab booking across major Indian cities with safe, affordable rides. <a href="https://aimcabbooking.com/" target="_blank" rel="noreferrer">Learn more</a></div></li>
+            <li><span>•</span><div><strong>HealthFusion</strong> — Holistic skin care blending Ayurveda and modern medicine with personalized plans. <a href="https://healthfusion.live/" target="_blank" rel="noreferrer">Learn more</a></div></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3 class="section-title">Company Details</h3>
+          <ul class="list">
+            <li><span>•</span><div>Address: Your full registered address</div></li>
+            <li><span>•</span><div>GST No: Your GST Number</div></li>
+            <li><span>•</span><div>Contact: hello@webutsav.com | +91-XXXXXXXXXX</div></li>
+            <li><span>•</span><div>Website: <a href="https://webutsav.com/" target="_blank" rel="noreferrer">webutsav.com</a></div></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <h3 class="section-title">Featured Projects</h3>
+        <div class="grid-4" style="margin-top: 14px;">
+          <a class="logo-tile" href="https://routebudget.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://routebudget.com/favicon.ico" alt="RouteBudget"></a>
+          <a class="logo-tile" href="https://managifyhr.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://managifyhr.com/favicon.ico" alt="ManagifyHR"></a>
+          <a class="logo-tile" href="https://aimcabbooking.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://aimcabbooking.com/favicon.ico" alt="Aim Cab Booking"></a>
+          <a class="logo-tile" href="https://healthfusion.live/" target="_blank" rel="noreferrer"><img class="logo" src="https://healthfusion.live/favicon.ico" alt="HealthFusion"></a>
+          <a class="logo-tile" href="https://parshuramdairyfarm.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://parshuramdairyfarm.com/favicon.ico" alt="Parshuram Dairy Farm"></a>
+          <a class="logo-tile" href="https://silksew.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://silksew.com/favicon.ico" alt="SilkSew"></a>
+          <a class="logo-tile" href="https://aquapharm-india.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://aquapharm-india.com/favicon.ico" alt="Aquapharm India"></a>
+          <a class="logo-tile" href="https://www.ajcabservices.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://www.ajcabservices.com/favicon.ico" alt="AJ Cab Services"></a>
+          <a class="logo-tile" href="https://www.rdcabs.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://www.rdcabs.com/favicon.ico" alt="RD Cabs"></a>
+          <a class="logo-tile" href="https://www.aartitravels.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://www.aartitravels.com/favicon.ico" alt="Aarti Travels"></a>
+          <a class="logo-tile" href="https://vertexabacus.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://vertexabacus.com/favicon.ico" alt="Vertex Abacus"></a>
+          <a class="logo-tile" href="https://mygarja.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://mygarja.com/favicon.ico" alt="MyGarja"></a>
+          <a class="logo-tile" href="https://www.hyennasecurity.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://www.hyennasecurity.com/favicon.ico" alt="Hyena Security"></a>
+          <a class="logo-tile" href="https://tripsnearme.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://tripsnearme.com/favicon.ico" alt="Trips Near Me"></a>
+          <a class="logo-tile" href="https://ajcabservices.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://ajcabservices.com/favicon.ico" alt="AJ Cab Services"></a>
+          <a class="logo-tile" href="https://www.naazcab.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://www.naazcab.com/favicon.ico" alt="Naaz Cab"></a>
+          <a class="logo-tile" href="https://www.parmeshwarcabservices.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://www.parmeshwarcabservices.com/favicon.ico" alt="Parmeshwar Cab Services"></a>
+          <a class="logo-tile" href="https://aimcab.com/" target="_blank" rel="noreferrer"><img class="logo" src="https://aimcab.com/favicon.ico" alt="aimcab.com"></a>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="container">
+        <h3 class="section-title">Clients</h3>
+        <p class="muted">A selection of brands and businesses we’ve partnered with.</p>
+        <div class="grid-4" style="margin-top: 14px;">
+          <div class="logo-tile"><img class="logo" src="https://webutsav.com/favicon.ico" alt="WebUtsav"></div>
+          <div class="logo-tile"><img class="logo" src="https://routebudget.com/favicon.ico" alt="RouteBudget"></div>
+          <div class="logo-tile"><img class="logo" src="https://managifyhr.com/favicon.ico" alt="ManagifyHR"></div>
+          <div class="logo-tile"><img class="logo" src="https://aimcabbooking.com/favicon.ico" alt="Aim Cab"></div>
+          <div class="logo-tile"><img class="logo" src="https://healthfusion.live/favicon.ico" alt="HealthFusion"></div>
+          <div class="logo-tile"><img class="logo" src="https://parshuramdairyfarm.com/favicon.ico" alt="Parshuram Dairy"></div>
+          <div class="logo-tile"><img class="logo" src="https://silksew.com/favicon.ico" alt="SilkSew"></div>
+          <div class="logo-tile"><img class="logo" src="https://aquapharm-india.com/favicon.ico" alt="Aquapharm India"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div>© WebUtsav — All rights reserved.</div>
+        <small>Built with modern web standards</small>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
