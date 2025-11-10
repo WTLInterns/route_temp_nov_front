@@ -62,6 +62,7 @@ const CabSearch = () => {
   const [pagination, setPagination] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [recordsPerPage] = useState(10) // Fixed to 10 records per page
+  const [flashNewId, setFlashNewId] = useState(null)
 
   // Reassign modal state
   const [showReassignModal, setShowReassignModal] = useState(false)
@@ -91,7 +92,42 @@ const CabSearch = () => {
     paymentMode: "",
     specialInstructions: "",
     adminNotes: "",
+    optionalPickupLocations: "",
+    optionalDropLocations: "",
   })
+
+  // Dynamic optional stops for Edit modal
+  const [editPickupCount, setEditPickupCount] = useState(0)
+  const [editDropCount, setEditDropCount] = useState(0)
+  const [editPickupLocations, setEditPickupLocations] = useState([])
+  const [editDropLocations, setEditDropLocations] = useState([])
+
+  const handleEditOptionalCountChange = (type, count) => {
+    const n = Math.max(0, Number.parseInt(count || 0))
+    if (type === 'pickup') {
+      setEditPickupCount(n)
+      setEditPickupLocations(prev => Array.from({ length: n }, (_, i) => prev[i] || ""))
+    } else {
+      setEditDropCount(n)
+      setEditDropLocations(prev => Array.from({ length: n }, (_, i) => prev[i] || ""))
+    }
+  }
+
+  const handleEditOptionalInputChange = (type, index, value) => {
+    if (type === 'pickup') {
+      setEditPickupLocations(prev => {
+        const next = [...prev]
+        next[index] = value
+        return next
+      })
+    } else {
+      setEditDropLocations(prev => {
+        const next = [...prev]
+        next[index] = value
+        return next
+      })
+    }
+  }
 
   // Reassign helpers (inside CabSearch)
   const fetchReassignData = useCallback(async () => {
@@ -193,7 +229,15 @@ const CabSearch = () => {
       paymentMode: assignment.paymentMode || "",
       specialInstructions: assignment.specialInstructions || "",
       adminNotes: assignment.adminNotes || "",
+      optionalPickupLocations: Array.isArray(assignment.optionalPickupLocations) ? assignment.optionalPickupLocations.join(", ") : "",
+      optionalDropLocations: Array.isArray(assignment.optionalDropLocations) ? assignment.optionalDropLocations.join(", ") : "",
     })
+    const pArr = Array.isArray(assignment.optionalPickupLocations) ? assignment.optionalPickupLocations : []
+    const dArr = Array.isArray(assignment.optionalDropLocations) ? assignment.optionalDropLocations : []
+    setEditPickupLocations(pArr)
+    setEditDropLocations(dArr)
+    setEditPickupCount(pArr.length)
+    setEditDropCount(dArr.length)
     setShowEditModal(true)
   }
 
@@ -207,7 +251,12 @@ const CabSearch = () => {
     try {
       const token = localStorage.getItem("token")
       const headers = { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
-      const res = await axios.put(`${baseURL}api/assigncab/edit/${editAssignment.id}`, editForm, headers)
+      const payload = {
+        ...editForm,
+        optionalPickupLocations: (editPickupLocations || []).map(s => String(s).trim()).filter(Boolean),
+        optionalDropLocations: (editDropLocations || []).map(s => String(s).trim()).filter(Boolean),
+      }
+      const res = await axios.put(`${baseURL}api/assigncab/edit/${editAssignment.id}`, payload, headers)
       if (res.status >= 200 && res.status < 300) {
         const updated = res.data?.assignment || null
         setCabDetails((prev) => prev.map((it) => it.id === editAssignment.id ? { ...it, ...updated } : it))
@@ -281,6 +330,18 @@ const CabSearch = () => {
   const showNotification = useCallback((msg) => {
     setNotification(msg)
     setTimeout(() => setNotification(""), 3000)
+  }, [])
+
+  // Ensure newest bookings appear first by assignedAt (fallback to id)
+  const sortAssignments = useCallback((arr) => {
+    return (arr || []).slice().sort((a, b) => {
+      const atA = a?.assignedAt ? new Date(a.assignedAt).getTime() : 0
+      const atB = b?.assignedAt ? new Date(b.assignedAt).getTime() : 0
+      if (atB !== atA) return atB - atA
+      const idA = Number(a?.id) || 0
+      const idB = Number(b?.id) || 0
+      return idB - idA
+    })
   }, [])
 
   useEffect(() => {
@@ -471,8 +532,9 @@ const CabSearch = () => {
       })
 
       const assignments = Array.isArray(res.data.assignments) ? res.data.assignments : []
-      setCabDetails(assignments)
-      setFilteredCabs(assignments)
+      const sorted = sortAssignments(assignments)
+      setCabDetails(sorted)
+      setFilteredCabs(sorted)
       setCurrentPage(page)
 
       if (res.data.pagination) {
@@ -502,8 +564,9 @@ const CabSearch = () => {
 
         const assignments = Array.isArray(res.data.assignments) ? res.data.assignments : []
         console.log("assignment", assignments)
-        setCabDetails(assignments)
-        setFilteredCabs(assignments)
+        const sorted = sortAssignments(assignments)
+        setCabDetails(sorted)
+        setFilteredCabs(sorted)
         setCurrentPage(1)
 
         if (res.data.pagination) {
@@ -519,6 +582,19 @@ const CabSearch = () => {
 
     fetchAssignedCabs()
   }, [recordsPerPage])
+
+  // Pick up newly created assignment id and show a brief highlight
+  useEffect(() => {
+    try {
+      const id = sessionStorage.getItem('flash:newAssignmentId')
+      if (id) {
+        setFlashNewId(id)
+        sessionStorage.removeItem('flash:newAssignmentId')
+        const t = setTimeout(() => setFlashNewId(null), 4000)
+        return () => clearTimeout(t)
+      }
+    } catch {}
+  }, [])
 
   useEffect(() => {
     const connectWebSocket = () => {
@@ -598,8 +674,9 @@ const CabSearch = () => {
       })
 
       const assignments = Array.isArray(res.data.assignments) ? res.data.assignments : Array.isArray(res.data) ? res.data : []
-      setCabDetails(assignments)
-      setFilteredCabs(assignments)
+      const sorted = sortAssignments(assignments)
+      setCabDetails(sorted)
+      setFilteredCabs(sorted)
 
       // Update pagination if available
       if (res.data.pagination) {
@@ -714,6 +791,30 @@ const CabSearch = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700">Drop Location</label>
               <p className="text-gray-900">{data?.dropLocation || "N/A"}</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Optional Pickup Locations</label>
+              {Array.isArray(data?.optionalPickupLocations) && data.optionalPickupLocations.length > 0 ? (
+                <ul className="list-disc list-inside text-gray-900">
+                  {data.optionalPickupLocations.map((loc, idx) => (
+                    <li key={idx}>{loc}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-900">None</p>
+              )}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Optional Drop Locations</label>
+              {Array.isArray(data?.optionalDropLocations) && data.optionalDropLocations.length > 0 ? (
+                <ul className="list-disc list-inside text-gray-900">
+                  {data.optionalDropLocations.map((loc, idx) => (
+                    <li key={idx}>{loc}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-900">None</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Trip Type</label>
@@ -1061,6 +1162,26 @@ const CabSearch = () => {
                     <p className="text-sm text-gray-700">Duration: {detailsAssignment.duration || "N/A"}</p>
                     <p className="text-sm text-gray-700 md:col-span-2">Pickup: {detailsAssignment.locationFrom || detailsAssignment.pickupLocation || "N/A"}</p>
                     <p className="text-sm text-gray-700 md:col-span-2">Drop: {detailsAssignment.locationTo || detailsAssignment.dropLocation || "N/A"}</p>
+                    {Array.isArray(detailsAssignment.optionalPickupLocations) && detailsAssignment.optionalPickupLocations.length > 0 && (
+                      <div className="md:col-span-2">
+                        <p className="text-sm text-gray-700">Optional Pickups:</p>
+                        <ul className="list-disc list-inside text-sm text-gray-700">
+                          {detailsAssignment.optionalPickupLocations.map((loc, idx) => (
+                            <li key={idx}>{loc}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {Array.isArray(detailsAssignment.optionalDropLocations) && detailsAssignment.optionalDropLocations.length > 0 && (
+                      <div className="md:col-span-2">
+                        <p className="text-sm text-gray-700">Optional Drops:</p>
+                        <ul className="list-disc list-inside text-sm text-gray-700">
+                          {detailsAssignment.optionalDropLocations.map((loc, idx) => (
+                            <li key={idx}>{loc}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                     {detailsAssignment.specialInstructions && (
                       <p className="text-sm text-gray-700 md:col-span-2">Instructions: {detailsAssignment.specialInstructions}</p>
                     )}
@@ -1100,9 +1221,65 @@ const CabSearch = () => {
                   <label className="block text-xs mb-1">Pickup Location</label>
                   <input name="pickupLocation" value={editForm.pickupLocation} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
                 </div>
+                {/* Optional pickups directly below Pickup */}
+                <div className="md:col-span-2">
+                  <label className="block text-xs mb-1">How many optional pickups?</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editPickupCount}
+                    onChange={(e) => handleEditOptionalCountChange('pickup', e.target.value)}
+                    className="w-full border rounded p-2 text-sm text-black"
+                  />
+                  {editPickupCount > 0 && (
+                    <div className="space-y-2 mt-2">
+                      <label className="block text-xs">Optional Pickup Locations</label>
+                      <div className="grid grid-cols-1 gap-2">
+                        {Array.from({ length: editPickupCount }).map((_, i) => (
+                          <input
+                            key={`edit-op-p-${i}`}
+                            type="text"
+                            value={editPickupLocations[i] || ""}
+                            onChange={(e) => handleEditOptionalInputChange('pickup', i, e.target.value)}
+                            className="w-full border rounded p-2 text-sm text-black"
+                            placeholder={`Pickup Location ${i + 1} (optional)`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <div className="md:col-span-2">
                   <label className="block text-xs mb-1">Drop Location</label>
                   <input name="dropLocation" value={editForm.dropLocation} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
+                </div>
+                {/* Optional drops directly below Drop */}
+                <div className="md:col-span-2">
+                  <label className="block text-xs mb-1">How many optional drops?</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editDropCount}
+                    onChange={(e) => handleEditOptionalCountChange('drop', e.target.value)}
+                    className="w-full border rounded p-2 text-sm text-black"
+                  />
+                  {editDropCount > 0 && (
+                    <div className="space-y-2 mt-2">
+                      <label className="block text-xs">Optional Drop Locations</label>
+                      <div className="grid grid-cols-1 gap-2">
+                        {Array.from({ length: editDropCount }).map((_, i) => (
+                          <input
+                            key={`edit-op-d-${i}`}
+                            type="text"
+                            value={editDropLocations[i] || ""}
+                            onChange={(e) => handleEditOptionalInputChange('drop', i, e.target.value)}
+                            className="w-full border rounded p-2 text-sm text-black"
+                            placeholder={`Drop Location ${i + 1} (optional)`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs mb-1">Pickup Time</label>
@@ -1140,6 +1317,7 @@ const CabSearch = () => {
                   <label className="block text-xs mb-1">Admin Notes</label>
                   <textarea name="adminNotes" value={editForm.adminNotes} onChange={handleEditChange} className="w-full border rounded p-2 text-sm" />
                 </div>
+                
               </div>
               <div className="flex justify-end gap-2 mt-4">
                 <button className="px-3 py-2 rounded bg-gray-100" onClick={() => setShowEditModal(false)}>Cancel</button>
@@ -1350,9 +1528,9 @@ const CabSearch = () => {
                   <tbody className="divide-y divide-gray-200">
                     {filteredCabs.length > 0 ? (
                       filteredCabs.map((item, index) => (
-                        <tr key={index} className="hover:bg-gray-50 transition-colors">
+                        <tr key={index} className={`hover:bg-gray-50 transition-colors ${String(item?.id)===String(flashNewId) ? 'bg-yellow-50 ring-2 ring-yellow-300' : ''}`}>
                           <td className="px-3 py-4 text-sm text-gray-900">
-                            {(currentPage - 1) * recordsPerPage + index + 1}
+                            {item?.id ?? item?.assignmentId ?? item?._id ?? ((currentPage - 1) * recordsPerPage + index + 1)}
                           </td>
                           <td className="px-3 py-4 text-sm font-medium text-gray-900">
                             <div className="max-w-[120px] truncate" title={item.CabsDetail?.cabNumber || "N/A"}>
@@ -1531,7 +1709,11 @@ const CabSearch = () => {
             <div className="lg:hidden space-y-4">
               {filteredCabs.length > 0 ? (
                 filteredCabs.map((item, index) => (
-                  <div key={index} className="bg-white p-4 rounded-lg shadow-sm border">
+                  <div key={index} className={`bg-white p-4 rounded-lg shadow-sm border ${String(item?.id)===String(flashNewId) ? 'bg-yellow-50 ring-2 ring-yellow-300' : ''}`}>
+                    <div className="mb-2">
+                      <p className="text-xs text-gray-500">Booking ID</p>
+                      <p className="text-sm font-medium text-gray-900">{item?.id ?? item?.assignmentId ?? item?._id ?? ((currentPage - 1) * recordsPerPage + index + 1)}</p>
+                    </div>
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       <div>
                         <p className="text-sm text-gray-500">Cab No</p>

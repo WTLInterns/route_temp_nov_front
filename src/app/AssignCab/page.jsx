@@ -45,35 +45,13 @@ const AccessDeniedModal = () => {
 export default function AssignCab() {
   const router = useRouter()
   const [showAccessDenied, setShowAccessDenied] = useState(false)
-  // Prime from cache for instant options in selects
-  const [drivers, setDrivers] = useState(() => {
-    try {
-      const d1 = localStorage.getItem('cache:freeCabsAndDrivers')
-      if (d1) {
-        const parsed = JSON.parse(d1)
-        if (Array.isArray(parsed?.freeDrivers)) return parsed.freeDrivers
-      }
-      const d2 = localStorage.getItem('cache:drivers')
-      return d2 ? JSON.parse(d2) : []
-    } catch { return [] }
-  })
-  const [cabs, setCabs] = useState(() => {
-    try {
-      const d1 = localStorage.getItem('cache:freeCabsAndDrivers')
-      if (d1) {
-        const parsed = JSON.parse(d1)
-        if (Array.isArray(parsed?.freeCabs)) return parsed.freeCabs
-      }
-      const d2 = localStorage.getItem('cache:cabDetails')
-      return d2 ? JSON.parse(d2) : []
-    } catch { return [] }
-  })
+  // SSR-safe initial state; hydrate from cache after mount
+  const [drivers, setDrivers] = useState([])
+  const [cabs, setCabs] = useState([])
   const [selectedDriver, setSelectedDriver] = useState("")
   const [selectedCab, setSelectedCab] = useState("")
   const [message, setMessage] = useState("")
-  const [loading, setLoading] = useState(() => {
-    try { return !localStorage.getItem('cache:freeCabsAndDrivers') } catch { return true }
-  })
+  const [loading, setLoading] = useState(true)
   const [showAddCabForm, setShowAddCabForm] = useState(false)
   const [driverCash, setDriverCash] = useState({ cashOnHand: 0, loading: false, lastUpdated: null, error: null })
   const [lastCashUpdateLabel, setLastCashUpdateLabel] = useState(null)
@@ -91,6 +69,8 @@ export default function AssignCab() {
     dropLocation: "",
     dropCity: "",
     dropState: "",
+    optionalPickupLocations: [],
+    optionalDropLocations: [],
     tripType: "One Way",
     vehicleType: "Sedan",
     scheduledPickupTime: "",
@@ -116,9 +96,18 @@ export default function AssignCab() {
   // Refs for Google Maps Autocomplete
   const pickupInputRef = useRef(null)
   const dropInputRef = useRef(null)
+  const optionalPickupRefs = useRef([])
+  const optionalDropRefs = useRef([])
+  const optionalPickupAC = useRef([])
+  const optionalDropAC = useRef([])
+  // Temporary flag to disable optional Places while investigating TDZ error
+  const ENABLE_OPTIONAL_PLACES = true
   const [autocompleteLoaded, setAutocompleteLoaded] = useState(false)
   const [shouldLoadPlaces, setShouldLoadPlaces] = useState(false)
   const [loadingPlaces, setLoadingPlaces] = useState(false)
+  // Dynamic optional stops handlers (moved up to avoid TDZ in effects below)
+  const [optionalPickupCount, setOptionalPickupCount] = useState(0)
+  const [optionalDropCount, setOptionalDropCount] = useState(0)
 
   // Lazily load Google Maps script only when user interacts with location fields
   useEffect(() => {
@@ -215,6 +204,57 @@ export default function AssignCab() {
     }
   }, [autocompleteLoaded])
 
+  // Initialize Autocomplete for dynamic optional inputs
+  useEffect(() => {
+    try {
+      if (!ENABLE_OPTIONAL_PLACES) return
+      if (typeof window === 'undefined' || !autocompleteLoaded || !window.google || !window.google.maps || !window.google.maps.places) return
+
+    // Normalize refs to current counts to avoid stale indexes
+    optionalPickupRefs.current.length = optionalPickupCount
+    optionalDropRefs.current.length = optionalDropCount
+
+    // Trim AC instances when counts decrease
+    optionalPickupAC.current = (optionalPickupAC.current || []).slice(0, optionalPickupCount)
+    optionalDropAC.current = (optionalDropAC.current || []).slice(0, optionalDropCount)
+
+    const setupAC = (el, idx, store, setArray) => {
+      if (!el || store[idx]) return
+      if (!(el instanceof HTMLInputElement)) return
+      try {
+        const ac = new window.google.maps.places.Autocomplete(el, {
+          types: ["geocode"],
+          componentRestrictions: { country: "in" },
+        })
+        ac.addListener("place_changed", () => {
+          const place = ac.getPlace()
+          const addr = place?.formatted_address || el.value || ""
+          setTripData(prev => {
+            const arr = [...(prev[setArray] || [])]
+            arr[idx] = addr
+            return { ...prev, [setArray]: arr }
+          })
+        })
+        store[idx] = ac
+      } catch (e) {
+        console.warn('Autocomplete init failed for', setArray, idx, e)
+      }
+    }
+
+    // Defer to next frame to ensure inputs are mounted
+    const rafId = window.requestAnimationFrame(() => {
+      optionalPickupRefs.current.forEach((el, i) => setupAC(el, i, optionalPickupAC.current, 'optionalPickupLocations'))
+      optionalDropRefs.current.forEach((el, i) => setupAC(el, i, optionalDropAC.current, 'optionalDropLocations'))
+    })
+
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId)
+    }
+    } catch (e) {
+      console.warn('Optional Places setup skipped due to runtime error', e)
+    }
+  }, [autocompleteLoaded, optionalPickupCount, optionalDropCount])
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       const addedBy = localStorage.getItem("id") || ""
@@ -246,7 +286,8 @@ export default function AssignCab() {
         console.error("Error fetching data:", error)
         setMessage("Failed to load data.")
       } finally {
-        if (!hasCache) setLoading(false)
+        // Always end loading state after attempt to fetch
+        setLoading(false)
       }
     }
     fetchData()
@@ -417,6 +458,8 @@ export default function AssignCab() {
         dropState: tripData.dropState.trim(),
         dropLatitude: tripData.dropLatitude ? Number.parseFloat(tripData.dropLatitude) : null,
         dropLongitude: tripData.dropLongitude ? Number.parseFloat(tripData.dropLongitude) : null,
+        optionalPickupLocations: (tripData.optionalPickupLocations || []).filter(Boolean),
+        optionalDropLocations: (tripData.optionalDropLocations || []).filter(Boolean),
         tripType: tripData.tripType,
         vehicleType: tripData.vehicleType,
         duration: tripData.duration ? Number.parseFloat(tripData.duration) : 0,
@@ -459,6 +502,15 @@ export default function AssignCab() {
       console.log("✅ Assignment successful!", response.data)
 
       setMessage("✅ Cab assigned successfully!")
+      try {
+        const created = response?.data?.assignment || response?.data || null
+        const createdId = created?.id ?? created?.assignmentId ?? null
+        if (createdId) {
+          sessionStorage.setItem('flash:newAssignmentId', String(createdId))
+        }
+      } catch {}
+      // Navigate to bookings list where newest appear on top
+      router.push('/CabInfo')
 
       // Reset form
       setSelectedDriver("")
@@ -472,6 +524,8 @@ export default function AssignCab() {
         dropLocation: "",
         dropCity: "",
         dropState: "",
+        optionalPickupLocations: [],
+        optionalDropLocations: [],
         tripType: "One Way",
         vehicleType: "Sedan",
         scheduledPickupTime: "",
@@ -481,6 +535,8 @@ export default function AssignCab() {
         duration: "",
         adminNotes: "",
       })
+      setOptionalPickupCount(0)
+      setOptionalDropCount(0)
 
       console.log("🔄 Form reset completed")
       setTimeout(() => setMessage(""), 3000)
@@ -509,6 +565,34 @@ export default function AssignCab() {
     // if (name === "pickupLocation" && !pickupInputRef.current?.value) return
     // if (name === "dropLocation" && !dropInputRef.current?.value) return
     setTripData((prev) => ({ ...prev, [name]: value }))
+  }
+
+  // Dynamic optional stops handlers
+
+  const handleOptionalCountChange = (type, count) => {
+    const n = Math.max(0, Number.parseInt(count || 0))
+    if (type === 'pickup') {
+      setOptionalPickupCount(n)
+      setTripData(prev => {
+        const arr = Array.from({ length: n }, (_, i) => prev.optionalPickupLocations[i] || "")
+        return { ...prev, optionalPickupLocations: arr }
+      })
+    } else {
+      setOptionalDropCount(n)
+      setTripData(prev => {
+        const arr = Array.from({ length: n }, (_, i) => prev.optionalDropLocations[i] || "")
+        return { ...prev, optionalDropLocations: arr }
+      })
+    }
+  }
+
+  const handleOptionalInputChange = (type, index, value) => {
+    setTripData(prev => {
+      const key = type === 'pickup' ? 'optionalPickupLocations' : 'optionalDropLocations'
+      const next = [...(prev[key] || [])]
+      next[index] = value
+      return { ...prev, [key]: next }
+    })
   }
 
   const handleCabFormChange = (e) => {
@@ -724,6 +808,7 @@ export default function AssignCab() {
                 </div>
 
                 {/* Location Details */}
+                {/* Row 1: Pickup and Drop */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -768,7 +853,7 @@ export default function AssignCab() {
                       value={tripData.dropLocation}
                       onChange={handleTripDataChange}
                       onFocus={() => setShouldLoadPlaces(true)}
-                      className="w-full border text-black border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                      className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
                       placeholder={
                         autocompleteLoaded
                           ? "Enter drop location"
@@ -785,6 +870,87 @@ export default function AssignCab() {
                     )}
                     {!autocompleteLoaded && loadingPlaces && (
                       <p className="text-xs text-yellow-600 mt-1">Loading location suggestions...</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Row 2: counts and dynamic optional fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Optional pickups */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">How many optional pickups?</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={optionalPickupCount}
+                      onChange={(e) => handleOptionalCountChange('pickup', e.target.value)}
+                      className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                      placeholder="0"
+                    />
+                    {optionalPickupCount > 0 && (
+                      <div className="space-y-2 mt-2">
+                        <div className="grid grid-cols-1 gap-3">
+                          {Array.from({ length: optionalPickupCount }).map((_, i) => (
+                            <div key={`op-p-wrap-${i}`} className="space-y-1">
+                              <label className="block text-xs text-gray-600">Optional Pickup {i + 1}</label>
+                              <input
+                                type="text"
+                                ref={(el) => (optionalPickupRefs.current[i] = el)}
+                                value={tripData.optionalPickupLocations[i] || ""}
+                                onChange={(e) => handleOptionalInputChange('pickup', i, e.target.value)}
+                                onFocus={() => setShouldLoadPlaces(true)}
+                                className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                                placeholder={
+                                  autocompleteLoaded
+                                    ? `Search optional pickup ${i + 1}`
+                                    : loadingPlaces
+                                      ? "Loading location suggestions..."
+                                      : `Optional Pickup ${i + 1}`
+                                }
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Optional drops */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">How many optional drops?</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={optionalDropCount}
+                      onChange={(e) => handleOptionalCountChange('drop', e.target.value)}
+                      className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                      placeholder="0"
+                    />
+                    {optionalDropCount > 0 && (
+                      <div className="space-y-2 mt-2">
+                        <div className="grid grid-cols-1 gap-3">
+                          {Array.from({ length: optionalDropCount }).map((_, i) => (
+                            <div key={`op-d-wrap-${i}`} className="space-y-1">
+                              <label className="block text-xs text-gray-600">Optional Drop {i + 1}</label>
+                              <input
+                                type="text"
+                                ref={(el) => (optionalDropRefs.current[i] = el)}
+                                value={tripData.optionalDropLocations[i] || ""}
+                                onChange={(e) => handleOptionalInputChange('drop', i, e.target.value)}
+                                onFocus={() => setShouldLoadPlaces(true)}
+                                className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+                                placeholder={
+                                  autocompleteLoaded
+                                    ? `Search optional drop ${i + 1}`
+                                    : loadingPlaces
+                                      ? "Loading location suggestions..."
+                                      : `Optional Drop ${i + 1}`
+                                }
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>

@@ -23,7 +23,7 @@ export default function RealTimeMap({ cabs, selectedCab, onCabSelect }) {
 
   return (
     <div className="w-full h-full">
-      <LoadScript googleMapsApiKey="AIzaSyCelDo4I5cPQ72TfCTQW-arhPZ7ALNcp8w">
+      <LoadScript googleMapsApiKey="AIzaSyAKjmBSUJ3XR8uD10vG2ptzqLJAZnOlzqI">
         <GoogleMap mapContainerStyle={containerStyle} center={mapCenter} zoom={selectedCab ? 15 : 8}>
           {cabs.map((cab) => (
             <Marker
