@@ -55,6 +55,8 @@ export default function AssignCab() {
   const [showAddCabForm, setShowAddCabForm] = useState(false)
   const [driverCash, setDriverCash] = useState({ cashOnHand: 0, loading: false, lastUpdated: null, error: null })
   const [lastCashUpdateLabel, setLastCashUpdateLabel] = useState(null)
+  const [showCashSubmitModal, setShowCashSubmitModal] = useState(false)
+  const [cashSubmitAmount, setCashSubmitAmount] = useState("")
   // Prevent duplicate booking submissions
   const [assigning, setAssigning] = useState(false)
   const assigningRef = useRef(false)
@@ -83,6 +85,7 @@ export default function AssignCab() {
 
   const [cabFormData, setCabFormData] = useState({
     cabNumber: "",
+    imei: "",
     insuranceNumber: "",
     insuranceExpiry: "",
     registrationNumber: "",
@@ -702,6 +705,60 @@ export default function AssignCab() {
     }
   };
 
+  const handleOpenCashSubmit = () => {
+    setCashSubmitAmount("")
+    setShowCashSubmitModal(true)
+  }
+
+  const handleSubmitCashAmount = async () => {
+    const amountNumber = Number(cashSubmitAmount)
+    if (!selectedDriver) {
+      setMessage("⚠️ Please select a driver first.")
+      return
+    }
+    if (!Number.isFinite(amountNumber) || amountNumber <= 0) {
+      setMessage("⚠️ Please enter a valid cash amount.")
+      return
+    }
+
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
+      if (!token) {
+        setMessage("⚠️ Authentication failed. Please log in again.")
+        return
+      }
+
+      const res = await axios.post(
+        `${baseURL}api/assigncab/cash/submit`,
+        {
+          driverId: selectedDriver,
+          amount: amountNumber,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        },
+      )
+
+      const newCashOnHand = Number(res.data?.cashOnHand ?? res.data?.newCashOnHand ?? 0)
+      setDriverCash((prev) => ({
+        ...prev,
+        cashOnHand: Math.max(0, Number.isFinite(newCashOnHand) ? newCashOnHand : prev.cashOnHand),
+      }))
+      const now = new Date()
+      setLastCashUpdateLabel(now.toLocaleTimeString())
+      setShowCashSubmitModal(false)
+      setMessage("✅ Cash submitted successfully.")
+      setTimeout(() => setMessage(""), 3000)
+    } catch (error) {
+      console.error("Error submitting driver cash:", error)
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || "Failed to submit cash."
+      setMessage(`❌ ${errorMessage}`)
+    }
+  }
+
   useEffect(() => {
     const checkUserStatus = async () => {
       try {
@@ -1142,7 +1199,16 @@ export default function AssignCab() {
                           </button>
                         </div>
                         {!driverCash.loading && !driverCash.error && lastCashUpdateLabel && (
-                          <span className="text-xs text-gray-500 text-right">Updated at {lastCashUpdateLabel}</span>
+                          <div className="mt-1 flex items-center justify-between gap-2">
+                            <button
+                              type="button"
+                              onClick={handleOpenCashSubmit}
+                              className="text-xs font-medium text-yellow-700 hover:text-yellow-800 border border-yellow-300 rounded px-2 py-1"
+                            >
+                              Cash Submit
+                            </button>
+                            <span className="text-xs text-gray-500 text-right">Updated at {lastCashUpdateLabel}</span>
+                          </div>
                         )}
                       </div>
                     )}
@@ -1366,6 +1432,55 @@ export default function AssignCab() {
               </button>
             </form>
 
+          </motion.div>
+        </div>
+      )}
+
+      {showCashSubmitModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div
+            className="bg-white rounded-lg p-6 w-full max-w-sm shadow-xl"
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Submit Cash</h3>
+              <button
+                onClick={() => setShowCashSubmitModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <label className="block text-sm font-medium text-gray-700 mb-2">Cash Amount</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={cashSubmitAmount}
+              onChange={(e) => setCashSubmitAmount(e.target.value)}
+              className="w-full border border-gray-300 text-black rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+              placeholder="Enter amount to submit"
+            />
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                onClick={() => setShowCashSubmitModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 text-sm bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg"
+                onClick={handleSubmitCashAmount}
+              >
+                Submit
+              </button>
+            </div>
           </motion.div>
         </div>
       )}

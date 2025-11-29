@@ -14,7 +14,7 @@ const Page = () => {
     setResponse("");
 
     try {
-      const res = await fetch("https://api.routebudget.com/api/ai-response", {
+      const res = await fetch("http://localhost:5000/api/ai-response", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt }),

@@ -104,7 +104,7 @@ export default function JobMarketPage() {
     setIsLoading(true);
     try {
       const token = getAuthToken();
-      const res = await fetch("https://api.routebudget.com/api/jobMarket/getAlljobs", {
+      const res = await fetch("http://localhost:5000/api/jobMarket/getAlljobs", {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -142,7 +142,7 @@ export default function JobMarketPage() {
         return;
       }
 
-      const res = await fetch(`https://api.routebudget.com/api/jobMarket/accept-job/${jobId}`, {
+      const res = await fetch(`http://localhost:5000/api/jobMarket/accept-job/${jobId}`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`
@@ -259,7 +259,7 @@ export default function JobMarketPage() {
 
     try {
       const token = getAuthToken();
-      const res = await fetch("https://api.routebudget.com/api/jobMarket/job-post", {
+      const res = await fetch("http://localhost:5000/api/jobMarket/job-post", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

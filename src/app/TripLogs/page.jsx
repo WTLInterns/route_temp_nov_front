@@ -79,7 +79,7 @@ export default function TripLogPage() {
     setIsLoading(true);
     try {
       const token = getAuthToken();
-      const res = await fetch("https://api.routebudget.com/api/jobMarket/my-accepted-jobs1", {
+      const res = await fetch("http://localhost:5000/api/jobMarket/my-accepted-jobs1", {
         headers: { "Authorization": `Bearer ${token}` }
       });
 
