@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import Sidebar from "../slidebar/page"
-import * as XLSX from "xlsx"
 import { saveAs } from "file-saver"
 import baseURL from "@/utils/api"
 import { useRouter } from "next/navigation"
@@ -157,47 +156,53 @@ const CabExpenses = () => {
   const getDropLocation = (cab) =>
     cab.dropLocation || cab.locationTo || cab.dropHistory || null
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     if (filteredExpenses.length === 0) {
       alert("No data to export!")
       return
     }
 
     setLoading(true)
-    setTimeout(() => {
-      try {
-        const formattedData = filteredExpenses.map((cab, index) => ({
-          ID: index + 1,
-          "Cab Number": getCabNumber(cab.cabId),
-          "Pickup Location": getPickupLocation(cab) || "-",
-          "Drop Location": getDropLocation(cab) || "-",
-          Date: cab.cabDate ? new Date(cab.cabDate).toLocaleDateString() : "N/A",
-          "Cash Collected (₹)": cab.cashCollected || 0,
-          "Fuel (₹)": cab.breakdown.fuel || 0,
-          "FastTag (₹)": cab.breakdown.fastTag || 0,
-          "Tyre Repair (₹)": cab.breakdown.tyrePuncture || 0,
-          "Other Expenses (₹)": cab.breakdown.otherProblems || 0,
-          "Total Expense (₹)": cab.totalExpense,
-          "Net Cash (₹)": (cab.cashCollected || 0) - (cab.totalExpense || 0),
-        }))
+    try {
+      const formattedData = filteredExpenses.map((cab, index) => ({
+        ID: index + 1,
+        "Cab Number": getCabNumber(cab.cabId),
+        "Pickup Location": getPickupLocation(cab) || "-",
+        "Drop Location": getDropLocation(cab) || "-",
+        Date: cab.cabDate ? new Date(cab.cabDate).toLocaleDateString() : "N/A",
+        "Cash Collected (₹)": cab.cashCollected || 0,
+        "Fuel (₹)": cab.breakdown.fuel || 0,
+        "FastTag (₹)": cab.breakdown.fastTag || 0,
+        "Tyre Repair (₹)": cab.breakdown.tyrePuncture || 0,
+        "Other Expenses (₹)": cab.breakdown.otherProblems || 0,
+        "Total Expense (₹)": cab.totalExpense,
+        "Net Cash (₹)": (cab.cashCollected || 0) - (cab.totalExpense || 0),
+      }))
 
-        const worksheet = XLSX.utils.json_to_sheet(formattedData)
-        const workbook = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Cab Expenses")
-        const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" })
-        const data = new Blob([excelBuffer], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        })
+      const ExcelJS = (await import('exceljs')).default
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet("Cab Expenses")
 
-        saveAs(data, "CabExpenses.xlsx")
-        alert("Export successful!")
-      } catch (error) {
-        console.error("Error exporting data:", error)
-        alert("Failed to export data")
-      } finally {
-        setLoading(false)
+      if (formattedData.length > 0) {
+        const headers = Object.keys(formattedData[0])
+        worksheet.columns = headers.map((header) => ({ header, key: header }))
+        worksheet.addRows(formattedData)
+        worksheet.getRow(1).font = { bold: true }
       }
-    }, 500)
+
+      const excelBuffer = await workbook.xlsx.writeBuffer()
+      const data = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      })
+
+      saveAs(data, "CabExpenses.xlsx")
+      alert("Export successful!")
+    } catch (error) {
+      console.error("Error exporting data:", error)
+      alert("Failed to export data")
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
