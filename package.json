@@ -18,6 +18,7 @@
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
+    "exceljs": "^4.4.0",
     "express": "^5.1.0",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.5.0",
@@ -28,8 +29,7 @@
     "mongoose": "^8.19.2",
     "morgan": "^1.10.1",
     "net": "^1.0.2",
-    "next": "15.2.1",
-    "nookies": "^2.5.2",
+    "next": "15.5.9",
     "number-to-words": "^1.2.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -38,8 +38,7 @@
     "react-leaflet": "^5.0.0",
     "react-toastify": "^11.0.5",
     "recharts": "^2.15.1",
-    "ws": "^8.18.1",
-    "xlsx": "^0.18.5"
+    "ws": "^8.18.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -49,7 +48,7 @@
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.1",
     "eslint": "^9",
-    "eslint-config-next": "15.2.1",
+    "eslint-config-next": "15.5.9",
     "patch-package": "^8.0.0",
     "postcss": "^8.5.3",
     "postinstall-postinstall": "^2.1.0",

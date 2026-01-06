@@ -4,9 +4,7 @@ import { useState, useEffect } from 'react';
 import { FiSearch, FiDownload, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { useRouter } from 'next/navigation';
 import Sidebar from "../slidebar/page";
-import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-
 
 export default function TripLogPage() {
   const [trips, setTrips] = useState([]);
@@ -148,9 +146,8 @@ export default function TripLogPage() {
     );
   }
 
-
   // ✅ Export trips to Excel
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     if (filteredTrips.length === 0) {
       alert("No data to export!");
       return;
@@ -168,24 +165,23 @@ export default function TripLogPage() {
       "Status": trip.status
     }));
 
-    // Step 2: Convert JSON → Sheet
-    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+    const ExcelJS = (await import('exceljs')).default;
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Trip Log');
 
-    // Step 3: Create Workbook & Append Sheet
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Trip Log");
+    if (formattedData.length > 0) {
+      const headers = Object.keys(formattedData[0]);
+      worksheet.columns = headers.map((header) => ({ header, key: header }));
+      worksheet.addRows(formattedData);
+      worksheet.getRow(1).font = { bold: true };
+    }
 
-    // Step 4: Write to Excel Buffer
-    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
-
-    // Step 5: Save as File
+    const excelBuffer = await workbook.xlsx.writeBuffer();
     const data = new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     });
-
-    saveAs(data, "TripLog.xlsx");
+    saveAs(data, 'TripLog.xlsx');
   };
-
 
   return (
     <div className="flex min-h-screen bg-gray-50">
