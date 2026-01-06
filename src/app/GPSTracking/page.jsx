@@ -376,7 +376,7 @@ const DynamicGPSTracking = () => {
   const wsRef = useRef(null)
   const reconnectTimeoutRef = useRef(null)
 
-  const API_BASE_URL = "http://localhost:5000/api"
+  const API_BASE_URL = "https://api.routebudget.com/api"
   // Single WebSocket server (attached to HTTP server). Allow override via env.
   const WS_URL = "wss://api.routebudget.com"
 

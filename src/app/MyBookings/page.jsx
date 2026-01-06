@@ -16,7 +16,7 @@ export default function MyBookingsPage() {
     const fetchBookings = async () => {
       try {
         const token = localStorage.getItem("token"); // 👈 ensure token is stored
-        const res = await axios.get("http://localhost:5000/api/jobMarket/my-accepted-jobs", {
+        const res = await axios.get("https://api.routebudget.com/api/jobMarket/my-accepted-jobs", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
